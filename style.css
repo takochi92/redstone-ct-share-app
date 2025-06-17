@@ -31,3 +31,7 @@ body {
   font-weight: bold;
   color: #d9534f;
 }
+.player {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
