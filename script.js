@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // イベント：ボタンクリックで30秒タイマー開始
     button.addEventListener("click", () => {
-      let remaining = 30;
+      let remaining = 12;
       timer.textContent = ` 残り: ${remaining}秒`;
 
       const interval = setInterval(() => {
