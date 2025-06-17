@@ -104,7 +104,7 @@
     function startCooldown(playerId) {
       if (cooldowns[playerId] > 0) return; // クールタイム中なら無視
 
-      countdowns[playerId] = 5;   // 任意のアクション時間（例: 5秒）
+      countdowns[playerId] = 12;   // 任意のアクション時間（例: 5秒）
       cooldowns[playerId] = 300;  // クールタイム（例: 300秒）
 
       updatePlayerDisplay(playerId);
