@@ -67,10 +67,13 @@
     const db = firebase.database();
 
     const playerCount = 8;
-    const arenaDuration = 180;   // アリーナ時間秒（3分）
+    const cooldownDuration = 300;
+    const usageDuration = 12;
+    const arenaDuration = 180;
 
     let arenaTimeLeft = 0;
     let arenaInterval;
+    let cooldownIntervalStarted = false;
 
     function startArena() {
       arenaTimeLeft = arenaDuration;
@@ -100,10 +103,9 @@
 
     function startCooldown(playerId) {
       const ref = db.ref(`players/player${playerId}`);
-      // まず12秒の「利用中」状態にする
       ref.update({
-        using: 12,
-        cooldown: 0
+        status: 'using',
+        timer: usageDuration
       });
     }
 
@@ -113,15 +115,12 @@
         const val = child.val();
         document.getElementById(`nameDisplay-${id}`).value = val.name || "";
 
-        let statusText = "";
-        if (val.using && val.using > 0) {
-          statusText = `| 利用中: ${val.using}秒`;
-        } else if (val.cooldown && val.cooldown > 0) {
-          statusText = `| クールタイム残り: ${val.cooldown}秒`;
-        } else {
-          statusText = `| クールタイム残り: 0秒`;
+        let statusText = "| 状態: 待機中";
+        if (val.status === 'using') {
+          statusText = `| 利用中: ${val.timer}秒`;
+        } else if (val.status === 'cooldown') {
+          statusText = `| クールタイム残り: ${val.timer}秒`;
         }
-
         document.getElementById(`cooldown-${id}`).innerText = statusText;
       });
     }
@@ -136,7 +135,7 @@
           <input type="text" id="nameInput-${i}" placeholder="名前入力">
           <button onclick="confirmName(${i})">決定</button><br/>
           <button onclick="startCooldown(${i})">開始</button>
-          <p id="cooldown-${i}">| クールタイム残り: 0秒</p>
+          <p id="cooldown-${i}">| 状態: 待機中</p>
           <input type="hidden" id="nameDisplay-${i}">
         `;
         container.appendChild(div);
@@ -154,15 +153,16 @@
         snapshot.forEach((child) => {
           const ref = child.ref;
           const val = child.val();
-
-          if (val.using && val.using > 0) {
-            ref.update({ using: val.using - 1 });
-            if (val.using === 1) {
-              // 利用中終了 → クールタイム開始
-              ref.update({ cooldown: 300 });
+          if (val.status === 'using' && val.timer > 0) {
+            ref.update({ timer: val.timer - 1 });
+            if (val.timer - 1 <= 0) {
+              ref.update({ status: 'cooldown', timer: cooldownDuration });
             }
-          } else if (val.cooldown && val.cooldown > 0) {
-            ref.update({ cooldown: val.cooldown - 1 });
+          } else if (val.status === 'cooldown' && val.timer > 0) {
+            ref.update({ timer: val.timer - 1 });
+            if (val.timer - 1 <= 0) {
+              ref.update({ status: 'idle', timer: 0 });
+            }
           }
         });
       });
@@ -170,7 +170,12 @@
 
     setupPlayers();
     listenForChanges();
-    setInterval(tickCooldowns, 1000);
+
+    // ✅ これが複数回実行されないように
+    if (!cooldownIntervalStarted) {
+      cooldownIntervalStarted = true;
+      setInterval(tickCooldowns, 1000);
+    }
   </script>
 </body>
 </html>
