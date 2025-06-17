@@ -112,10 +112,10 @@
     const intervals = Array(9).fill(null);
 
     function startCooldown(playerId) {
-      if (cooldowns[playerId] > 0) return;
+      if (cooldowns[playerId] > 0 || countdowns[playerId] > 0) return;
 
       countdowns[playerId] = 12;
-      cooldowns[playerId] = 35;
+      cooldowns[playerId] = 300;
 
       updatePlayerDisplay(playerId);
 
@@ -140,10 +140,8 @@
       const cooldownEl = document.getElementById(`cooldown-${playerId}`);
 
       countdownEl.textContent = `残り: ${countdowns[playerId]}秒`;
-
       cooldownEl.textContent = `| クールタイム残り: ${cooldowns[playerId]}秒`;
 
-      // クラスの切り替え（30秒以下なら赤）
       if (cooldowns[playerId] > 0 && cooldowns[playerId] <= 30) {
         cooldownEl.classList.add("red");
       } else {
