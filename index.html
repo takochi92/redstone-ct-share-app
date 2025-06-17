@@ -52,7 +52,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
-    // Firebase設定（あなたのfirebaseConfigで置き換えてください）
     const firebaseConfig = {
       apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
   authDomain: "redstone-cooltime.firebaseapp.com",
@@ -73,7 +72,6 @@
 
     let arenaTimeLeft = 0;
     let arenaInterval;
-    let cooldownIntervalStarted = false;
 
     function startArena() {
       arenaTimeLeft = arenaDuration;
@@ -154,13 +152,15 @@
           const ref = child.ref;
           const val = child.val();
           if (val.status === 'using' && val.timer > 0) {
-            ref.update({ timer: val.timer - 1 });
-            if (val.timer - 1 <= 0) {
+            const newTimer = val.timer - 1;
+            ref.update({ timer: newTimer });
+            if (newTimer <= 0) {
               ref.update({ status: 'cooldown', timer: cooldownDuration });
             }
           } else if (val.status === 'cooldown' && val.timer > 0) {
-            ref.update({ timer: val.timer - 1 });
-            if (val.timer - 1 <= 0) {
+            const newTimer = val.timer - 1;
+            ref.update({ timer: newTimer });
+            if (newTimer <= 0) {
               ref.update({ status: 'idle', timer: 0 });
             }
           }
@@ -168,14 +168,12 @@
       });
     }
 
-    setupPlayers();
-    listenForChanges();
-
-    // ✅ これが複数回実行されないように
-    if (!cooldownIntervalStarted) {
-      cooldownIntervalStarted = true;
-      setInterval(tickCooldowns, 1000);
-    }
+    // ✅ 初期化処理をwindow.onloadで1回だけ実行
+    window.onload = () => {
+      setupPlayers();
+      listenForChanges();
+      setInterval(tickCooldowns, 1000);  // ←これが1回だけ動く
+    };
   </script>
 </body>
 </html>
