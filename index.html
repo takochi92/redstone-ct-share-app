@@ -152,5 +152,22 @@
       }
     }
   </script>
+  const firebaseConfig = {
+  apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
+  authDomain: "redstone-cooltime.firebaseapp.com",
+  databaseURL: "https://redstone-cooltime-default-rtdb.firebaseio.com",
+  projectId: "redstone-cooltime",
+  storageBucket: "redstone-cooltime.firebasestorage.app",
+  messagingSenderId: "940339332591",
+  appId: "1:940339332591:web:7da07ad6db29278a61621a"
+};
+  <script>
+  // Firebaseを初期化
+  firebase.initializeApp(firebaseConfig);
+
+  // Realtime Database参照を取得（あとで使います）
+  const database = firebase.database();
+</script>
+
 </body>
 </html>
