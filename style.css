@@ -1,1 +1,15 @@
-body { font-family: sans-serif; }
+body {
+  font-family: sans-serif;
+  padding: 2rem;
+}
+
+button {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+}
+
+#cooldownDisplay {
+  margin-top: 1rem;
+  font-size: 1.2rem;
+}
