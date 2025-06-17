@@ -47,26 +47,15 @@
 <body>
   <h1>三顧の騎士</h1>
 
-  <!-- ✅ ボタンをアリーナ開始に変更 -->
+  <!-- ✅ アリーナ全体タイマー -->
   <button onclick="startArena()">アリーナ開始</button>
-
-  <!-- ✅ 残り時間（分秒で表示） -->
   <p id="globalTimer">残り時間: 0分0秒</p>
 
-  <div class="player-grid">
-    <div class="player-box">プレイヤー1</div>
-    <div class="player-box">プレイヤー2</div>
-    <div class="player-box">プレイヤー3</div>
-    <div class="player-box">プレイヤー4</div>
-    <div class="player-box">プレイヤー5</div>
-    <div class="player-box">プレイヤー6</div>
-    <div class="player-box">プレイヤー7</div>
-    <div class="player-box">プレイヤー8</div>
-  </div>
+  <div class="player-grid" id="playerGrid"></div>
 
   <script>
     let arenaCountdown;
-    let arenaTimeLeft = 1800; // 30分（1800秒）
+    let arenaTimeLeft = 1800;
 
     function startArena() {
       clearInterval(arenaCountdown);
@@ -76,7 +65,6 @@
       arenaCountdown = setInterval(() => {
         arenaTimeLeft--;
         updateGlobalTimer();
-
         if (arenaTimeLeft <= 0) {
           clearInterval(arenaCountdown);
           document.getElementById("globalTimer").textContent = "アリーナ終了！";
@@ -89,6 +77,60 @@
       const seconds = arenaTimeLeft % 60;
       document.getElementById("globalTimer").textContent =
         `残り時間: ${minutes}分${seconds}秒`;
+    }
+
+    // ✅ プレイヤー用のデータを生成
+    const playerGrid = document.getElementById("playerGrid");
+
+    for (let i = 1; i <= 8; i++) {
+      const box = document.createElement("div");
+      box.className = "player-box";
+
+      box.innerHTML = `
+        <div>プレイヤー${i}</div>
+        <button onclick="startCooldown(${i})" id="btn-${i}">開始</button>
+        <div id="countdown-${i}">残り: 0秒</div>
+        <div id="cooldown-${i}">| クールタイム残り: 0秒</div>
+      `;
+
+      playerGrid.appendChild(box);
+    }
+
+    // ✅ 各プレイヤーのタイマー状態
+    const countdowns = Array(9).fill(0);
+    const cooldowns = Array(9).fill(0);
+    const intervals = Array(9).fill(null);
+
+    function startCooldown(playerId) {
+      if (cooldowns[playerId] > 0) return; // クールタイム中なら無視
+
+      countdowns[playerId] = 5;   // 任意のアクション時間（例: 5秒）
+      cooldowns[playerId] = 300;  // クールタイム（例: 300秒）
+
+      updatePlayerDisplay(playerId);
+
+      clearInterval(intervals[playerId]);
+      intervals[playerId] = setInterval(() => {
+        if (countdowns[playerId] > 0) {
+          countdowns[playerId]--;
+        } else if (cooldowns[playerId] > 0) {
+          cooldowns[playerId]--;
+        }
+
+        updatePlayerDisplay(playerId);
+
+        if (countdowns[playerId] === 0 && cooldowns[playerId] === 0) {
+          clearInterval(intervals[playerId]);
+        }
+      }, 1000);
+    }
+
+    function updatePlayerDisplay(playerId) {
+      document.getElementById(`countdown-${playerId}`).textContent =
+        `残り: ${countdowns[playerId]}秒`;
+
+      document.getElementById(`cooldown-${playerId}`).textContent =
+        `| クールタイム残り: ${cooldowns[playerId]}秒`;
     }
   </script>
 </body>
