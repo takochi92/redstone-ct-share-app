@@ -44,6 +44,7 @@
   <h1>三顧の騎士</h1>
   <button onclick="startArena()">アリーナ開始</button>
   <p id="arena-timer">残り時間: 0分0秒</p>
+
   <div id="players"></div>
 
   <!-- Firebase SDK -->
@@ -51,8 +52,9 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
+    // Firebase設定（自分の情報に置き換えてください）
     const firebaseConfig = {
-     apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
+      apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
   authDomain: "redstone-cooltime.firebaseapp.com",
   databaseURL: "https://redstone-cooltime-default-rtdb.firebaseio.com",
   projectId: "redstone-cooltime",
@@ -63,15 +65,9 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const playerCount = 8;
-    const useDuration = 12000; // 12秒（ミリ秒）
-    const cooldownDuration = 300000; // 300秒（ミリ秒）
-    const arenaDuration = 180; // アリーナ時間（秒）
-
-    let arenaTimeLeft = 0;
-    let arenaInterval;
     let serverTimeOffset = 0;
 
+    // サーバー時刻を取得
     firebase.database().ref("/.info/serverTimeOffset").on("value", (snap) => {
       serverTimeOffset = snap.val() || 0;
     });
@@ -80,35 +76,24 @@
       return Date.now() + serverTimeOffset;
     }
 
-    function startArena() {
-      arenaTimeLeft = arenaDuration;
-      updateArenaDisplay();
-      clearInterval(arenaInterval);
-      arenaInterval = setInterval(() => {
-        arenaTimeLeft--;
-        if (arenaTimeLeft <= 0) {
-          clearInterval(arenaInterval);
-          arenaTimeLeft = 0;
-        }
-        updateArenaDisplay();
-      }, 1000);
-    }
+    const playerCount = 8;
+    const useDuration = 12 * 1000;
+    const cooldownDuration = 300 * 1000;
+    const arenaDuration = 3 * 60 * 1000;
 
-    function updateArenaDisplay() {
-      const min = Math.floor(arenaTimeLeft / 60);
-      const sec = arenaTimeLeft % 60;
-      document.getElementById("arena-timer").innerText = `残り時間: ${min}分${sec}秒`;
+    function startArena() {
+      db.ref("arena/startTime").set(getServerTime());
     }
 
     function confirmName(playerId) {
-      const input = document.getElementById(`nameInput-${playerId}`);
-      const name = input.value.trim();
+      const name = document.getElementById(`nameInput-${playerId}`).value.trim();
       db.ref(`players/player${playerId}`).update({ name });
     }
 
-    function startCooldown(playerId) {
+    function startUse(playerId) {
+      const ref = db.ref(`players/player${playerId}`);
       const now = getServerTime();
-      db.ref(`players/player${playerId}`).update({
+      ref.update({
         useStartTime: now,
         cooldownStartTime: null
       });
@@ -123,72 +108,65 @@
           <h3>プレイヤー${i}</h3>
           <input type="text" id="nameInput-${i}" placeholder="名前入力">
           <button onclick="confirmName(${i})">決定</button><br/>
-          <button onclick="startCooldown(${i})">開始</button>
-          <p id="status-${i}">| 状態: 未使用</p>
+          <button onclick="startUse(${i})">開始</button>
+          <p id="status-${i}">状態: 待機中</p>
         `;
         container.appendChild(div);
       }
     }
 
-    function updateStatus(playerId, data) {
+    function updateArenaTimer(startTime) {
       const now = getServerTime();
-      const useStart = data.useStartTime || 0;
-      const cdStart = data.cooldownStartTime || 0;
-      const name = data.name || "";
-
-      let text = "| 状態: 未使用";
-
-      if (useStart && !cdStart) {
-        const elapsed = now - useStart;
-        if (elapsed < useDuration) {
-          const remaining = Math.ceil((useDuration - elapsed) / 1000);
-          text = `| 利用中: ${remaining}秒`;
-        } else {
-          // 利用終了 → クールダウン開始
-          db.ref(`players/player${playerId}`).update({
-            cooldownStartTime: now
-          });
-          text = `| クールタイム: 300秒`;
-        }
-      } else if (cdStart) {
-        const elapsed = now - cdStart;
-        if (elapsed < cooldownDuration) {
-          const remaining = Math.ceil((cooldownDuration - elapsed) / 1000);
-          text = `| クールタイム: ${remaining}秒`;
-        } else {
-          // クールタイム終了 → 状態リセット
-          db.ref(`players/player${playerId}`).update({
-            useStartTime: null,
-            cooldownStartTime: null
-          });
-          text = `| 状態: 未使用`;
-        }
-      }
-
-      document.getElementById(`status-${playerId}`).innerText = text;
+      const elapsed = now - startTime;
+      const remaining = Math.max(0, arenaDuration - elapsed);
+      const min = Math.floor(remaining / 60000);
+      const sec = Math.floor((remaining % 60000) / 1000);
+      document.getElementById("arena-timer").innerText = `残り時間: ${min}分${sec}秒`;
     }
 
-    function listenForChanges() {
-      db.ref("players").on("value", (snapshot) => {
-        const data = snapshot.val() || {};
-        for (let i = 1; i <= playerCount; i++) {
-          updateStatus(i, data[`player${i}`] || {});
+    function listenArena() {
+      db.ref("arena/startTime").on("value", (snap) => {
+        const startTime = snap.val();
+        if (startTime) {
+          setInterval(() => updateArenaTimer(startTime), 1000);
         }
       });
     }
 
-    function periodicUpdate() {
-      db.ref("players").once("value").then(snapshot => {
-        const data = snapshot.val() || {};
-        for (let i = 1; i <= playerCount; i++) {
-          updateStatus(i, data[`player${i}`] || {});
-        }
+    function listenPlayers() {
+      db.ref("players").on("value", (snapshot) => {
+        const now = getServerTime();
+        snapshot.forEach((child) => {
+          const id = child.key.replace("player", "");
+          const data = child.val();
+          const statusEl = document.getElementById(`status-${id}`);
+
+          if (data.useStartTime && now - data.useStartTime < useDuration) {
+            const remaining = Math.ceil((useDuration - (now - data.useStartTime)) / 1000);
+            statusEl.innerText = `利用中: 残り${remaining}秒`;
+          } else if (data.useStartTime && (!data.cooldownStartTime || now - data.useStartTime < useDuration + 100)) {
+            // 利用が終わった瞬間にクールダウンへ
+            db.ref(`players/player${id}`).update({ 
+              cooldownStartTime: data.useStartTime + useDuration 
+            });
+          } else if (data.cooldownStartTime && now - data.cooldownStartTime < cooldownDuration) {
+            const remaining = Math.ceil((cooldownDuration - (now - data.cooldownStartTime)) / 1000);
+            statusEl.innerText = `クールダウン中: 残り${remaining}秒`;
+          } else {
+            statusEl.innerText = "状態: 待機中";
+          }
+
+          const nameInput = document.getElementById(`nameInput-${id}`);
+          if (data.name) {
+            nameInput.value = data.name;
+          }
+        });
       });
     }
 
     setupPlayers();
-    listenForChanges();
-    setInterval(periodicUpdate, 1000);
+    listenArena();
+    listenPlayers();
   </script>
 </body>
 </html>
