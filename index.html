@@ -42,12 +42,24 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       width: 200px;
     }
+
+    .countdown {
+      font-weight: bold;
+    }
+
+    .cooldown {
+      color: black;
+    }
+
+    .cooldown.red {
+      color: red;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <h1>三顧の騎士</h1>
 
-  <!-- ✅ アリーナ全体タイマー -->
   <button onclick="startArena()">アリーナ開始</button>
   <p id="globalTimer">残り時間: 0分0秒</p>
 
@@ -79,7 +91,6 @@
         `残り時間: ${minutes}分${seconds}秒`;
     }
 
-    // ✅ プレイヤー用のデータを生成
     const playerGrid = document.getElementById("playerGrid");
 
     for (let i = 1; i <= 8; i++) {
@@ -89,23 +100,22 @@
       box.innerHTML = `
         <div>プレイヤー${i}</div>
         <button onclick="startCooldown(${i})" id="btn-${i}">開始</button>
-        <div id="countdown-${i}">残り: 0秒</div>
-        <div id="cooldown-${i}">| クールタイム残り: 0秒</div>
+        <div id="countdown-${i}" class="countdown">残り: 0秒</div>
+        <div id="cooldown-${i}" class="cooldown">| クールタイム残り: 0秒</div>
       `;
 
       playerGrid.appendChild(box);
     }
 
-    // ✅ 各プレイヤーのタイマー状態
     const countdowns = Array(9).fill(0);
     const cooldowns = Array(9).fill(0);
     const intervals = Array(9).fill(null);
 
     function startCooldown(playerId) {
-      if (cooldowns[playerId] > 0) return; // クールタイム中なら無視
+      if (cooldowns[playerId] > 0) return;
 
-      countdowns[playerId] = 12;   // 任意のアクション時間（例: 5秒）
-      cooldowns[playerId] = 300;  // クールタイム（例: 300秒）
+      countdowns[playerId] = 5;
+      cooldowns[playerId] = 300;
 
       updatePlayerDisplay(playerId);
 
@@ -126,11 +136,18 @@
     }
 
     function updatePlayerDisplay(playerId) {
-      document.getElementById(`countdown-${playerId}`).textContent =
-        `残り: ${countdowns[playerId]}秒`;
+      const countdownEl = document.getElementById(`countdown-${playerId}`);
+      const cooldownEl = document.getElementById(`cooldown-${playerId}`);
 
-      document.getElementById(`cooldown-${playerId}`).textContent =
-        `| クールタイム残り: ${cooldowns[playerId]}秒`;
+      countdownEl.textContent = `残り: ${countdowns[playerId]}秒`;
+
+      // クールタイムの文字色変更
+      cooldownEl.textContent = `| クールタイム残り: ${cooldowns[playerId]}秒`;
+      if (cooldowns[playerId] <= 30 && cooldowns[playerId] > 0) {
+        cooldownEl.classList.add("red");
+      } else {
+        cooldownEl.classList.remove("red");
+      }
     }
   </script>
 </body>
