@@ -1,1 +1,1 @@
-# redstone-ct-share-app
+# RedStone CoolTime Share App
