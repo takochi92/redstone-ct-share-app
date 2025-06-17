@@ -162,6 +162,25 @@ function updateName(playerId) {
   database.ref(`players/player${playerId}`).update({
     name: name
   });
+  // Firebaseのデータをリアルタイムで監視して、表示を更新する
+for (let i = 1; i <= 8; i++) {
+  database.ref(`players/player${i}`).on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data || !data.cooldownStart) return;
+
+    const now = Date.now();
+    const elapsed = Math.floor((now - data.cooldownStart) / 1000);
+
+    let countdown = Math.max(0, 12 - elapsed);
+    let cooldown = Math.max(0, 300 - elapsed);
+
+    countdowns[i] = countdown;
+    cooldowns[i] = cooldown;
+
+    updatePlayerDisplay(i);
+  });
+}
+
 }
 
 // 名前をリアルタイムで受け取って反映する関数
