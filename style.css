@@ -1,103 +1,56 @@
 body {
   font-family: 'Arial', sans-serif;
+  background-color: #f8f8f8;
   text-align: center;
-  background-color: #f5f5f5;
-  padding: 20px;
+  padding: 40px;
+  margin: 0;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+button {
+  padding: 6px 12px;
+  font-size: 14px;
+  margin: 4px;
+  border: 1px solid #888;
+  border-radius: 4px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #eee;
 }
 
 #playerContainer {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.player-box {
-  background-color: #ffffff;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  padding: 10px;
-  width: 200px;
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.player-box h3 {
-  margin-top: 0;
-}
-
-.cooldown {
-  font-size: 16px;
-  font-weight: bold;
-  color: #d9534f;
-}
-.player {
-  margin-bottom: 10px;
-  font-size: 16px;
-}
-body {
-  font-family: sans-serif;
-  text-align: center;
-  background-color: #f8f8f8;
-}
-
-#playerContainer {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-  max-width: 800px;
-  margin: 40px auto;
+  gap: 20px;
+  margin-top: 30px;
 }
 
 .player {
-  background: white;
-  padding: 10px;
+  background-color: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  font-size: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.player {
-  background-color: #ffffff;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 12px 16px;
-  margin: 10px;
-  width: 220px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-family: "Segoe UI", sans-serif;
+  padding: 16px;
+  width: 200px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: left;
 }
 
 .player span {
-  margin-top: 4px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.player button {
-  margin-top: 6px;
-  padding: 4px 10px;
+  display: block;
+  margin: 4px 0;
   font-size: 14px;
-  border: none;
-  background-color: #4caf50;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
+  line-height: 1.4;
 }
 
-.player button:hover {
-  background-color: #45a049;
-}
-
-/* プレイヤー全体の並び */
-#playerContainer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
+.cooldown {
+  font-size: 12px;
+  color: #666;
 }
