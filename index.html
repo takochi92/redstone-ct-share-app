@@ -168,6 +168,30 @@
   // Realtime Database参照を取得（あとで使います）
   const database = firebase.database();
 </script>
+// 名前をFirebaseに保存する関数
+function updateName(playerId) {
+  const nameInput = document.getElementById(`name${playerId}`);
+  const name = nameInput.value;
 
+  database.ref(`players/player${playerId}`).update({
+    name: name
+  });
+}
+
+// 名前をリアルタイムで受け取って反映する関数
+function listenForNameChanges(playerId) {
+  const nameInput = document.getElementById(`name${playerId}`);
+  database.ref(`players/player${playerId}/name`).on("value", (snapshot) => {
+    const name = snapshot.val();
+    if (name !== null && nameInput !== document.activeElement) {
+      nameInput.value = name;
+    }
+  });
+}
+
+// 全員の名前をリアルタイム監視する
+for (let i = 1; i <= 8; i++) {
+  listenForNameChanges(i);
+}
 </body>
 </html>
