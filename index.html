@@ -52,6 +52,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
+    // 🔧 Firebase設定（あなたのプロジェクトに置き換えてください）
     const firebaseConfig = {
       apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
   authDomain: "redstone-cooltime.firebaseapp.com",
@@ -66,12 +67,13 @@
     const db = firebase.database();
 
     const playerCount = 8;
-    const cooldownDuration = 300;
-    const usageDuration = 12;
-    const arenaDuration = 180;
+    const useDuration = 12;      // 利用秒数
+    const cooldownDuration = 300; // クールタイム秒
+    const arenaDuration = 180;   // アリーナ時間秒（3分）
 
     let arenaTimeLeft = 0;
     let arenaInterval;
+    let isHost = false;
 
     function startArena() {
       arenaTimeLeft = arenaDuration;
@@ -99,11 +101,11 @@
       db.ref(`players/player${playerId}`).update({ name });
     }
 
-    function startCooldown(playerId) {
+    function startUse(playerId) {
       const ref = db.ref(`players/player${playerId}`);
       ref.update({
         status: 'using',
-        timer: usageDuration
+        timer: useDuration
       });
     }
 
@@ -113,13 +115,14 @@
         const val = child.val();
         document.getElementById(`nameDisplay-${id}`).value = val.name || "";
 
-        let statusText = "| 状態: 待機中";
+        const display = document.getElementById(`cooldown-${id}`);
         if (val.status === 'using') {
-          statusText = `| 利用中: ${val.timer}秒`;
+          display.innerText = `| 利用中: ${val.timer}秒`;
         } else if (val.status === 'cooldown') {
-          statusText = `| クールタイム残り: ${val.timer}秒`;
+          display.innerText = `| クールタイム: ${val.timer}秒`;
+        } else {
+          display.innerText = `| 使用可能`;
         }
-        document.getElementById(`cooldown-${id}`).innerText = statusText;
       });
     }
 
@@ -132,8 +135,8 @@
           <h3>プレイヤー${i}</h3>
           <input type="text" id="nameInput-${i}" placeholder="名前入力">
           <button onclick="confirmName(${i})">決定</button><br/>
-          <button onclick="startCooldown(${i})">開始</button>
-          <p id="cooldown-${i}">| 状態: 待機中</p>
+          <button onclick="startUse(${i})">開始</button>
+          <p id="cooldown-${i}">| 使用可能</p>
           <input type="hidden" id="nameDisplay-${i}">
         `;
         container.appendChild(div);
@@ -168,11 +171,31 @@
       });
     }
 
-    // ✅ 初期化処理をwindow.onloadで1回だけ実行
+    // 🧠 ホスト判定：最初に開いた人が tick を担当
+    function determineHost() {
+      const hostRef = db.ref("host");
+      hostRef.once("value").then(snapshot => {
+        if (!snapshot.exists()) {
+          hostRef.set({ timestamp: Date.now() });
+          isHost = true;
+          startTicking();
+        } else {
+          isHost = false;
+        }
+      });
+    }
+
+    function startTicking() {
+      if (isHost) {
+        setInterval(tickCooldowns, 1000);
+      }
+    }
+
+    // ✅ 初期化
     window.onload = () => {
       setupPlayers();
       listenForChanges();
-      setInterval(tickCooldowns, 1000);  // ←これが1回だけ動く
+      determineHost();
     };
   </script>
 </body>
