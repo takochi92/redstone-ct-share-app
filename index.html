@@ -54,19 +54,19 @@
   <script>
     // Firebase設定（あなたのfirebaseConfigで置き換えてください）
     const firebaseConfig = {
-      apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
-  authDomain: "redstone-cooltime.firebaseapp.com",
-  databaseURL: "https://redstone-cooltime-default-rtdb.firebaseio.com",
-  projectId: "redstone-cooltime",
-  storageBucket: "redstone-cooltime.firebasestorage.app",
-  messagingSenderId: "940339332591",
-  appId: "1:940339332591:web:7da07ad6db29278a61621a"
-};
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DB_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     const playerCount = 8;
-    const cooldownDuration = 25; // クールタイム秒
     const arenaDuration = 180;   // アリーナ時間秒（3分）
 
     let arenaTimeLeft = 0;
@@ -100,24 +100,29 @@
 
     function startCooldown(playerId) {
       const ref = db.ref(`players/player${playerId}`);
+      // まず12秒の「利用中」状態にする
       ref.update({
-        cooldown: cooldownDuration
+        using: 12,
+        cooldown: 0
       });
     }
 
     function updateCooldownDisplays(data) {
       data.forEach((child) => {
         const id = child.key.replace("player", "");
-        const val = child.val() || {};
+        const val = child.val();
+        document.getElementById(`nameDisplay-${id}`).value = val.name || "";
 
-        const nameDisplay = document.getElementById(`nameDisplay-${id}`);
-        const cooldownDisplay = document.getElementById(`cooldown-${id}`);
-
-        if (nameDisplay && cooldownDisplay) {
-          nameDisplay.value = val.name || "";
-          cooldownDisplay.innerText =
-            val.cooldown ? `| クールタイム残り: ${val.cooldown}秒` : "| クールタイム残り: 0秒";
+        let statusText = "";
+        if (val.using && val.using > 0) {
+          statusText = `| 利用中: ${val.using}秒`;
+        } else if (val.cooldown && val.cooldown > 0) {
+          statusText = `| クールタイム残り: ${val.cooldown}秒`;
+        } else {
+          statusText = `| クールタイム残り: 0秒`;
         }
+
+        document.getElementById(`cooldown-${id}`).innerText = statusText;
       });
     }
 
@@ -149,7 +154,14 @@
         snapshot.forEach((child) => {
           const ref = child.ref;
           const val = child.val();
-          if (val.cooldown && val.cooldown > 0) {
+
+          if (val.using && val.using > 0) {
+            ref.update({ using: val.using - 1 });
+            if (val.using === 1) {
+              // 利用中終了 → クールタイム開始
+              ref.update({ cooldown: 300 });
+            }
+          } else if (val.cooldown && val.cooldown > 0) {
             ref.update({ cooldown: val.cooldown - 1 });
           }
         });
