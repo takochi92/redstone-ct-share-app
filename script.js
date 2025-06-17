@@ -1,73 +1,24 @@
-console.log('RedStone CT App loaded');
+// クールタイム秒数（例：60秒）
+const COOLDOWN_TIME = 60;
 
-document.addEventListener('DOMContentLoaded', () => {
-  const button = document.getElementById('startButton');
-  const display = document.getElementById('cooldownDisplay');
+// プレイヤーの人数（最大8人）
+const PLAYER_COUNT = 8;
 
-  let timer = null;
-  let remaining = 0;
+document.addEventListener("DOMContentLoaded", () => {
+  const startButton = document.getElementById("startButton");
+  const playerContainer = document.getElementById("playerContainer");
 
-  button.addEventListener('click', () => {
-    if (timer) clearInterval(timer); // 前のタイマーをリセット
+  // ボタンが押されたらプレイヤー枠を生成
+  startButton.addEventListener("click", () => {
+    playerContainer.innerHTML = ""; // 既存の中身をリセット
 
-    remaining = 30;
-    display.textContent = `残り時間: ${remaining}秒`;
+    for (let i = 1; i <= PLAYER_COUNT; i++) {
+      const box = document.createElement("div");
+      box.className = "player-box";
 
-    timer = setInterval(() => {
-      remaining--;
-      display.textContent = `残り時間: ${remaining}秒`;
+      const title = document.createElement("h3");
+      title.textContent = `プレイヤー${i}`;
 
-      if (remaining <= 0) {
-        clearInterval(timer);
-        display.textContent = "クールタイム終了！";
-      }
-    }, 1000);
-  });
-});
-document.addEventListener('DOMContentLoaded', () => {
-  const playerContainer = document.getElementById('playerContainer');
-  const playerCount = 8;
-  const cooldownSeconds = 30;
-
-  for (let i = 1; i <= playerCount; i++) {
-    // プレイヤー用要素を作成
-    const playerDiv = document.createElement('div');
-    playerDiv.classList.add('player');
-
-    const name = document.createElement('h2');
-    name.textContent = `プレイヤー${i}`;
-
-    const button = document.createElement('button');
-    button.textContent = 'クールタイム開始';
-
-    const display = document.createElement('p');
-    display.textContent = '残り時間: 0秒';
-
-    // タイマー処理
-    let timer = null;
-    let remaining = 0;
-
-    button.addEventListener('click', () => {
-      if (timer) clearInterval(timer);
-
-      remaining = cooldownSeconds;
-      display.textContent = `残り時間: ${remaining}秒`;
-
-      timer = setInterval(() => {
-        remaining--;
-        display.textContent = `残り時間: ${remaining}秒`;
-
-        if (remaining <= 0) {
-          clearInterval(timer);
-          display.textContent = 'クールタイム終了！';
-        }
-      }, 1000);
-    });
-
-    // 要素を追加
-    playerDiv.appendChild(name);
-    playerDiv.appendChild(button);
-    playerDiv.appendChild(display);
-    playerContainer.appendChild(playerDiv);
-  }
-});
+      const button = document.createElement("button");
+      button.textContent = "スキル使用";
+      button.disabl
