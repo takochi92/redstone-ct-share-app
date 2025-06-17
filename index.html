@@ -48,12 +48,7 @@
   <div id="players"></div>
 
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
+  apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
   authDomain: "redstone-cooltime.firebaseapp.com",
   databaseURL: "https://redstone-cooltime-default-rtdb.firebaseio.com",
   projectId: "redstone-cooltime",
@@ -61,21 +56,26 @@
   messagingSenderId: "940339332591",
   appId: "1:940339332591:web:7da07ad6db29278a61621a"
 };
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
+  <script>
+    const firebaseConfig = {
+     
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     const playerCount = 8;
-    const useDuration = 12;
-    const cooldownDuration = 300;
-    const arenaDuration = 180;
+    const USE_DURATION = 12;    // 利用中（秒）
+    const COOLDOWN_DURATION = 300; // クールタイム（秒）
+    const ARENA_DURATION = 180; // アリーナ時間（秒）
 
     let arenaTimeLeft = 0;
     let arenaInterval;
-    const localCooldowns = {};
 
     function startArena() {
-      arenaTimeLeft = arenaDuration;
+      arenaTimeLeft = ARENA_DURATION;
+      updateArenaDisplay();
       clearInterval(arenaInterval);
       arenaInterval = setInterval(() => {
         arenaTimeLeft--;
@@ -93,45 +93,18 @@
       document.getElementById("arena-timer").innerText = `残り時間: ${min}分${sec}秒`;
     }
 
-    function startCooldown(playerId) {
-      const startTime = Date.now();
-      const endTime = startTime + (useDuration + cooldownDuration) * 1000;
-
-      db.ref(`players/player${playerId}`).update({
-        startTime,
-        phase: "using"
-      });
-
-      localCooldowns[playerId] = { startTime };
-    }
-
     function confirmName(playerId) {
       const input = document.getElementById(`nameInput-${playerId}`);
       const name = input.value.trim();
       db.ref(`players/player${playerId}`).update({ name });
-      document.getElementById(`playerTitle-${playerId}`).innerText = `プレイヤー${playerId}：${name}`;
     }
 
-    function updateDisplay() {
-      const now = Date.now();
-      for (let i = 1; i <= playerCount; i++) {
-        const data = localCooldowns[i];
-        const display = document.getElementById(`cooldown-${i}`);
-        if (!data || !data.startTime) {
-          display.innerText = "| 待機中";
-          continue;
-        }
-
-        const elapsed = Math.floor((now - data.startTime) / 1000);
-        if (elapsed < useDuration) {
-          display.innerText = `| 利用中: ${useDuration - elapsed}秒`;
-        } else if (elapsed < useDuration + cooldownDuration) {
-          display.innerText = `| クールタイム: ${useDuration + cooldownDuration - elapsed}秒`;
-        } else {
-          display.innerText = "| 待機中";
-          delete localCooldowns[i];
-        }
-      }
+    function startUse(playerId) {
+      const ref = db.ref(`players/player${playerId}`);
+      ref.update({
+        status: "active",
+        startTime: firebase.database.ServerValue.TIMESTAMP
+      });
     }
 
     function setupPlayers() {
@@ -140,11 +113,11 @@
         const div = document.createElement("div");
         div.className = "player";
         div.innerHTML = `
-          <h3 id="playerTitle-${i}">プレイヤー${i}</h3>
+          <h3>プレイヤー${i}</h3>
           <input type="text" id="nameInput-${i}" placeholder="名前入力">
           <button onclick="confirmName(${i})">決定</button><br/>
-          <button onclick="startCooldown(${i})">開始</button>
-          <p id="cooldown-${i}">| 待機中</p>
+          <button onclick="startUse(${i})">利用</button>
+          <p id="cooldown-${i}">| 状態: 未使用</p>
         `;
         container.appendChild(div);
       }
@@ -152,14 +125,43 @@
 
     function listenForChanges() {
       db.ref("players").on("value", (snapshot) => {
+        const now = Date.now();
         snapshot.forEach((child) => {
           const id = child.key.replace("player", "");
           const val = child.val();
-          if (val.name) {
-            document.getElementById(`playerTitle-${id}`).innerText = `プレイヤー${id}：${val.name}`;
-          }
-          if (val.startTime) {
-            localCooldowns[id] = { startTime: val.startTime };
+
+          const display = document.getElementById(`cooldown-${id}`);
+          if (!display) return;
+
+          // 名前同期
+          const nameInput = document.getElementById(`nameInput-${id}`);
+          if (val.name !== undefined) nameInput.value = val.name;
+
+          // タイマー処理
+          if (val.status && val.startTime) {
+            const elapsed = Math.floor((now - val.startTime) / 1000);
+
+            if (val.status === "active") {
+              const remain = Math.max(0, USE_DURATION - elapsed);
+              display.innerText = `| 利用中（残り: ${remain}秒）`;
+              if (remain <= 0) {
+                db.ref(`players/player${id}`).update({
+                  status: "cooldown",
+                  startTime: firebase.database.ServerValue.TIMESTAMP
+                });
+              }
+            } else if (val.status === "cooldown") {
+              const remain = Math.max(0, COOLDOWN_DURATION - elapsed);
+              display.innerText = `| クールタイム（残り: ${remain}秒）`;
+              if (remain <= 0) {
+                db.ref(`players/player${id}`).update({
+                  status: null,
+                  startTime: null
+                });
+              }
+            }
+          } else {
+            display.innerText = `| 状態: 未使用`;
           }
         });
       });
@@ -167,7 +169,6 @@
 
     setupPlayers();
     listenForChanges();
-    setInterval(updateDisplay, 1000);
   </script>
 </body>
 </html>
