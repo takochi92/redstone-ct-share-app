@@ -101,11 +101,11 @@
       box.className = "player-box";
 
       box.innerHTML = `
-        <div>プレイヤー${i}</div>
-        <button onclick="startCooldown(${i})" id="btn-${i}">開始</button>
-        <div id="countdown-${i}" class="countdown">残り: 0秒</div>
-        <div id="cooldown-${i}" class="cooldown">| クールタイム残り: 0秒</div>
-      `;
+<div class="player">
+  <input type="text" id="name1" placeholder="プレイヤー1" onchange="updateName(1)" />
+  <button onclick="startCooldown(1)">開始</button>
+  <div id="countdown1">残り: 0秒</div>
+  <div id="cooldown1">| クールタイム残り: 0秒</div>
 
       playerGrid.appendChild(box);
     }
