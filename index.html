@@ -44,7 +44,6 @@
   <h1>三顧の騎士</h1>
   <button onclick="startArena()">アリーナ開始</button>
   <p id="arena-timer">残り時間: 0分0秒</p>
-
   <div id="players"></div>
 
   <!-- Firebase SDK -->
@@ -52,9 +51,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
-    // Firebase 設定（あなたの設定に書き換えてください）
     const firebaseConfig = {
-      apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
+     apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
   authDomain: "redstone-cooltime.firebaseapp.com",
   databaseURL: "https://redstone-cooltime-default-rtdb.firebaseio.com",
   projectId: "redstone-cooltime",
@@ -62,29 +60,44 @@
   messagingSenderId: "940339332591",
   appId: "1:940339332591:web:7da07ad6db29278a61621a"
 };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     const playerCount = 8;
-    const useDuration = 12;
-    const cooldownDuration = 300;
+    const useDuration = 12000; // 12秒（ミリ秒）
+    const cooldownDuration = 300000; // 300秒（ミリ秒）
+    const arenaDuration = 180; // アリーナ時間（秒）
 
-    function startArena() {
-      const now = Date.now();
-      db.ref("arena").set({ startTime: now });
+    let arenaTimeLeft = 0;
+    let arenaInterval;
+    let serverTimeOffset = 0;
+
+    firebase.database().ref("/.info/serverTimeOffset").on("value", (snap) => {
+      serverTimeOffset = snap.val() || 0;
+    });
+
+    function getServerTime() {
+      return Date.now() + serverTimeOffset;
     }
 
-    function updateArenaTimer(startTime) {
-      const interval = setInterval(() => {
-        const now = Date.now();
-        const elapsed = Math.floor((now - startTime) / 1000);
-        const remaining = Math.max(0, 180 - elapsed);
-        const min = Math.floor(remaining / 60);
-        const sec = remaining % 60;
-        document.getElementById("arena-timer").innerText = `残り時間: ${min}分${sec}秒`;
-        if (remaining <= 0) clearInterval(interval);
+    function startArena() {
+      arenaTimeLeft = arenaDuration;
+      updateArenaDisplay();
+      clearInterval(arenaInterval);
+      arenaInterval = setInterval(() => {
+        arenaTimeLeft--;
+        if (arenaTimeLeft <= 0) {
+          clearInterval(arenaInterval);
+          arenaTimeLeft = 0;
+        }
+        updateArenaDisplay();
       }, 1000);
+    }
+
+    function updateArenaDisplay() {
+      const min = Math.floor(arenaTimeLeft / 60);
+      const sec = arenaTimeLeft % 60;
+      document.getElementById("arena-timer").innerText = `残り時間: ${min}分${sec}秒`;
     }
 
     function confirmName(playerId) {
@@ -93,31 +106,11 @@
       db.ref(`players/player${playerId}`).update({ name });
     }
 
-    function startPlayerCooldown(playerId) {
-      const now = Date.now();
-      db.ref(`players/player${playerId}`).update({ startTime: now });
-    }
-
-    function updatePlayerDisplays(snapshot) {
-      snapshot.forEach(child => {
-        const id = child.key.replace("player", "");
-        const val = child.val();
-        document.getElementById(`nameDisplay-${id}`).value = val.name || "";
-        const cooldownEl = document.getElementById(`cooldown-${id}`);
-        const now = Date.now();
-
-        if (val.startTime) {
-          const elapsed = Math.floor((now - val.startTime) / 1000);
-          if (elapsed < useDuration) {
-            cooldownEl.innerText = `| 利用中: ${useDuration - elapsed}秒`;
-          } else if (elapsed < useDuration + cooldownDuration) {
-            cooldownEl.innerText = `| クールタイム残り: ${useDuration + cooldownDuration - elapsed}秒`;
-          } else {
-            cooldownEl.innerText = `| 使用可能`;
-          }
-        } else {
-          cooldownEl.innerText = `| クールタイム残り: 0秒`;
-        }
+    function startCooldown(playerId) {
+      const now = getServerTime();
+      db.ref(`players/player${playerId}`).update({
+        useStartTime: now,
+        cooldownStartTime: null
       });
     }
 
@@ -130,33 +123,72 @@
           <h3>プレイヤー${i}</h3>
           <input type="text" id="nameInput-${i}" placeholder="名前入力">
           <button onclick="confirmName(${i})">決定</button><br/>
-          <button onclick="startPlayerCooldown(${i})">開始</button>
-          <p id="cooldown-${i}">| クールタイム残り: 0秒</p>
-          <input type="hidden" id="nameDisplay-${i}">
+          <button onclick="startCooldown(${i})">開始</button>
+          <p id="status-${i}">| 状態: 未使用</p>
         `;
         container.appendChild(div);
       }
     }
 
-    function listenForChanges() {
-      db.ref("players").on("value", snapshot => {
-        updatePlayerDisplays(snapshot);
-      });
+    function updateStatus(playerId, data) {
+      const now = getServerTime();
+      const useStart = data.useStartTime || 0;
+      const cdStart = data.cooldownStartTime || 0;
+      const name = data.name || "";
 
-      db.ref("arena").on("value", snapshot => {
-        const val = snapshot.val();
-        if (val && val.startTime) {
-          updateArenaTimer(val.startTime);
+      let text = "| 状態: 未使用";
+
+      if (useStart && !cdStart) {
+        const elapsed = now - useStart;
+        if (elapsed < useDuration) {
+          const remaining = Math.ceil((useDuration - elapsed) / 1000);
+          text = `| 利用中: ${remaining}秒`;
+        } else {
+          // 利用終了 → クールダウン開始
+          db.ref(`players/player${playerId}`).update({
+            cooldownStartTime: now
+          });
+          text = `| クールタイム: 300秒`;
+        }
+      } else if (cdStart) {
+        const elapsed = now - cdStart;
+        if (elapsed < cooldownDuration) {
+          const remaining = Math.ceil((cooldownDuration - elapsed) / 1000);
+          text = `| クールタイム: ${remaining}秒`;
+        } else {
+          // クールタイム終了 → 状態リセット
+          db.ref(`players/player${playerId}`).update({
+            useStartTime: null,
+            cooldownStartTime: null
+          });
+          text = `| 状態: 未使用`;
+        }
+      }
+
+      document.getElementById(`status-${playerId}`).innerText = text;
+    }
+
+    function listenForChanges() {
+      db.ref("players").on("value", (snapshot) => {
+        const data = snapshot.val() || {};
+        for (let i = 1; i <= playerCount; i++) {
+          updateStatus(i, data[`player${i}`] || {});
+        }
+      });
+    }
+
+    function periodicUpdate() {
+      db.ref("players").once("value").then(snapshot => {
+        const data = snapshot.val() || {};
+        for (let i = 1; i <= playerCount; i++) {
+          updateStatus(i, data[`player${i}`] || {});
         }
       });
     }
 
     setupPlayers();
     listenForChanges();
-
-    setInterval(() => {
-      db.ref("players").once("value").then(updatePlayerDisplays);
-    }, 1000);
+    setInterval(periodicUpdate, 1000);
   </script>
 </body>
 </html>
