@@ -52,7 +52,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
-    // 🔧 Firebase設定（あなたのプロジェクトに置き換えてください）
+    // Firebase設定（あなたのfirebaseConfigで置き換えてください）
     const firebaseConfig = {
       apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
   authDomain: "redstone-cooltime.firebaseapp.com",
@@ -62,18 +62,16 @@
   messagingSenderId: "940339332591",
   appId: "1:940339332591:web:7da07ad6db29278a61621a"
 };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
     const playerCount = 8;
-    const useDuration = 12;      // 利用秒数
+    const useDuration = 12;       // 使用中の秒数
     const cooldownDuration = 300; // クールタイム秒
-    const arenaDuration = 180;   // アリーナ時間秒（3分）
+    const arenaDuration = 180;    // アリーナ時間秒（3分）
 
     let arenaTimeLeft = 0;
     let arenaInterval;
-    let isHost = false;
 
     function startArena() {
       arenaTimeLeft = arenaDuration;
@@ -95,34 +93,55 @@
       document.getElementById("arena-timer").innerText = `残り時間: ${min}分${sec}秒`;
     }
 
+    const localTimers = {};
+
+    function startCooldown(playerId) {
+      if (localTimers[playerId]) {
+        clearInterval(localTimers[playerId]);
+      }
+
+      const ref = db.ref(`players/player${playerId}`);
+      let phase = "using";
+      let timeLeft = useDuration;
+
+      localTimers[playerId] = setInterval(() => {
+        if (timeLeft > 0) {
+          ref.update({ cooldown: timeLeft, phase });
+          timeLeft--;
+        } else {
+          if (phase === "using") {
+            phase = "cooldown";
+            timeLeft = cooldownDuration;
+          } else {
+            clearInterval(localTimers[playerId]);
+            ref.update({ cooldown: 0, phase: null });
+          }
+        }
+      }, 1000);
+    }
+
     function confirmName(playerId) {
       const input = document.getElementById(`nameInput-${playerId}`);
       const name = input.value.trim();
       db.ref(`players/player${playerId}`).update({ name });
-    }
-
-    function startUse(playerId) {
-      const ref = db.ref(`players/player${playerId}`);
-      ref.update({
-        status: 'using',
-        timer: useDuration
-      });
+      document.getElementById(`playerTitle-${playerId}`).innerText = `プレイヤー${playerId}：${name}`;
     }
 
     function updateCooldownDisplays(data) {
       data.forEach((child) => {
         const id = child.key.replace("player", "");
         const val = child.val();
-        document.getElementById(`nameDisplay-${id}`).value = val.name || "";
+        const name = val.name || "";
+        const cooldown = val.cooldown || 0;
+        const phase = val.phase || null;
 
-        const display = document.getElementById(`cooldown-${id}`);
-        if (val.status === 'using') {
-          display.innerText = `| 利用中: ${val.timer}秒`;
-        } else if (val.status === 'cooldown') {
-          display.innerText = `| クールタイム: ${val.timer}秒`;
-        } else {
-          display.innerText = `| 使用可能`;
-        }
+        document.getElementById(`playerTitle-${id}`).innerText = name ? `プレイヤー${id}：${name}` : `プレイヤー${id}`;
+        const displayText = phase === "using"
+          ? `| 利用中: ${cooldown}秒`
+          : phase === "cooldown"
+            ? `| クールタイム: ${cooldown}秒`
+            : "| 待機中";
+        document.getElementById(`cooldown-${id}`).innerText = displayText;
       });
     }
 
@@ -132,12 +151,11 @@
         const div = document.createElement("div");
         div.className = "player";
         div.innerHTML = `
-          <h3>プレイヤー${i}</h3>
+          <h3 id="playerTitle-${i}">プレイヤー${i}</h3>
           <input type="text" id="nameInput-${i}" placeholder="名前入力">
           <button onclick="confirmName(${i})">決定</button><br/>
-          <button onclick="startUse(${i})">開始</button>
-          <p id="cooldown-${i}">| 使用可能</p>
-          <input type="hidden" id="nameDisplay-${i}">
+          <button onclick="startCooldown(${i})">開始</button>
+          <p id="cooldown-${i}">| 待機中</p>
         `;
         container.appendChild(div);
       }
@@ -149,54 +167,8 @@
       });
     }
 
-    function tickCooldowns() {
-      db.ref("players").once("value").then((snapshot) => {
-        snapshot.forEach((child) => {
-          const ref = child.ref;
-          const val = child.val();
-          if (val.status === 'using' && val.timer > 0) {
-            const newTimer = val.timer - 1;
-            ref.update({ timer: newTimer });
-            if (newTimer <= 0) {
-              ref.update({ status: 'cooldown', timer: cooldownDuration });
-            }
-          } else if (val.status === 'cooldown' && val.timer > 0) {
-            const newTimer = val.timer - 1;
-            ref.update({ timer: newTimer });
-            if (newTimer <= 0) {
-              ref.update({ status: 'idle', timer: 0 });
-            }
-          }
-        });
-      });
-    }
-
-    // 🧠 ホスト判定：最初に開いた人が tick を担当
-    function determineHost() {
-      const hostRef = db.ref("host");
-      hostRef.once("value").then(snapshot => {
-        if (!snapshot.exists()) {
-          hostRef.set({ timestamp: Date.now() });
-          isHost = true;
-          startTicking();
-        } else {
-          isHost = false;
-        }
-      });
-    }
-
-    function startTicking() {
-      if (isHost) {
-        setInterval(tickCooldowns, 1000);
-      }
-    }
-
-    // ✅ 初期化
-    window.onload = () => {
-      setupPlayers();
-      listenForChanges();
-      determineHost();
-    };
+    setupPlayers();
+    listenForChanges();
   </script>
 </body>
 </html>
