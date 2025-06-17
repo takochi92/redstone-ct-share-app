@@ -2,110 +2,123 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>三顧の騎士</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>三顕の騎士 - アリーナ共有タイマー</title>
   <style>
     body {
       font-family: sans-serif;
-      text-align: center;
       background-color: #f9f9f9;
+      text-align: center;
+      margin: 20px;
     }
-
     h1 {
-      margin-top: 30px;
+      font-size: 32px;
     }
-
-    button {
-      margin-top: 10px;
-      padding: 8px 16px;
-      font-size: 16px;
-    }
-
-    #globalTimer {
-      margin-top: 10px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-
     .player-grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 30px;
-      gap: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
     }
-
     .player-box {
-      background-color: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      width: 200px;
+      border: 1px solid #ccc;
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
     }
-
-    .cooldown {
-      color: black;
+    input {
+      width: 80%;
+      margin-bottom: 8px;
     }
-
+    button {
+      padding: 6px 12px;
+      margin-bottom: 8px;
+    }
     .cooldown.red {
       color: red;
       font-weight: bold;
     }
   </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
-  <h1>三顧の騎士</h1>
+  <h1>三顕の騎士</h1>
   <button onclick="startArena()">アリーナ開始</button>
-  <p id="globalTimer">残り時間: 0分0秒</p>
+  <p id="arena-timer">残り時間: 0分0秒</p>
+
   <div class="player-grid" id="playerGrid"></div>
 
   <script>
-    // Firebase設定
     const firebaseConfig = {
-      apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
-      authDomain: "redstone-cooltime.firebaseapp.com",
-      databaseURL: "https://redstone-cooltime-default-rtdb.firebaseio.com",
-      projectId: "redstone-cooltime",
-      storageBucket: "redstone-cooltime.appspot.com",
-      messagingSenderId: "940339332591",
-      appId: "1:940339332591:web:7da07ad6db29278a61621a"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DB_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
-    // Firebase初期化
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // グローバルタイマー
-    let arenaCountdown;
-    let arenaTimeLeft = 1800;
+    const arenaDuration = 300; // 5分（秒）
+    let arenaTimeLeft = 0;
+    let arenaTimer = null;
+    const countdowns = Array(9).fill(0);
+    const cooldowns = Array(9).fill(0);
 
     function startArena() {
-      clearInterval(arenaCountdown);
-      arenaTimeLeft = 1800;
-      updateGlobalTimer();
-      arenaCountdown = setInterval(() => {
-        arenaTimeLeft--;
-        updateGlobalTimer();
-        if (arenaTimeLeft <= 0) {
-          clearInterval(arenaCountdown);
-          document.getElementById("globalTimer").textContent = "アリーナ終了！";
-        }
+      const now = Date.now();
+      database.ref("arena/startTime").set(now);
+    }
+
+    function updateArenaTimer() {
+      const timerEl = document.getElementById("arena-timer");
+      const min = Math.floor(arenaTimeLeft / 60);
+      const sec = arenaTimeLeft % 60;
+      timerEl.textContent = `残り時間: ${min}分${sec}秒`;
+    }
+
+    database.ref("arena/startTime").on("value", (snapshot) => {
+      const startTime = snapshot.val();
+      if (!startTime) return;
+      if (arenaTimer) clearInterval(arenaTimer);
+      arenaTimer = setInterval(() => {
+        const now = Date.now();
+        const elapsed = Math.floor((now - startTime) / 1000);
+        arenaTimeLeft = Math.max(0, arenaDuration - elapsed);
+        updateArenaTimer();
+        if (arenaTimeLeft === 0) clearInterval(arenaTimer);
       }, 1000);
+    });
+
+    function startCooldown(playerId) {
+      const now = Date.now();
+      database.ref(`players/player${playerId}`).set({
+        cooldownStart: now
+      });
     }
 
-    function updateGlobalTimer() {
-      const minutes = Math.floor(arenaTimeLeft / 60);
-      const seconds = arenaTimeLeft % 60;
-      document.getElementById("globalTimer").textContent = `残り時間: ${minutes}分${seconds}秒`;
+    function updateName(playerId) {
+      const name = document.getElementById(`name${playerId}`).value;
+      database.ref(`players/player${playerId}/name`).set(name);
     }
 
-    // ページが読み込まれた後に実行
-    document.addEventListener("DOMContentLoaded", () => {
+    function listenForNameChanges(playerId) {
+      database.ref(`players/player${playerId}/name`).on("value", (snapshot) => {
+        const name = snapshot.val();
+        if (name) {
+          document.getElementById(`name${playerId}`).value = name;
+        }
+      });
+    }
+
+    // 🔽 プレイヤーの表示と同期処理（即時実行）
+    (function () {
       const playerGrid = document.getElementById("playerGrid");
-      const countdowns = Array(9).fill(0);
-      const cooldowns = Array(9).fill(0);
 
       for (let i = 1; i <= 8; i++) {
         const box = document.createElement("div");
@@ -118,7 +131,6 @@
         `;
         playerGrid.appendChild(box);
 
-        // Firebaseのクールタイム監視
         database.ref(`players/player${i}`).on("value", (snapshot) => {
           const data = snapshot.val();
           if (!data || !data.cooldownStart) return;
@@ -129,12 +141,18 @@
           updatePlayerDisplay(i);
         });
 
-        // 名前のリアルタイム同期
         listenForNameChanges(i);
       }
 
-      // プレイヤー表示更新関数
-      window.updatePlayerDisplay = function(playerId) {
+      setInterval(() => {
+        for (let i = 1; i <= 8; i++) {
+          if (countdowns[i] > 0) countdowns[i]--;
+          if (cooldowns[i] > 0) cooldowns[i]--;
+          updatePlayerDisplay(i);
+        }
+      }, 1000);
+
+      window.updatePlayerDisplay = function (playerId) {
         const countdownEl = document.getElementById(`countdown-${playerId}`);
         const cooldownEl = document.getElementById(`cooldown-${playerId}`);
         countdownEl.textContent = `残り: ${countdowns[playerId]}秒`;
@@ -145,33 +163,7 @@
           cooldownEl.classList.remove("red");
         }
       };
-    });
-
-    // 名前保存
-    function updateName(playerId) {
-      const nameInput = document.getElementById(`name${playerId}`);
-      const name = nameInput.value;
-      database.ref(`players/player${playerId}`).update({ name: name });
-    }
-
-    // 名前リアルタイム反映
-    function listenForNameChanges(playerId) {
-      const nameInput = document.getElementById(`name${playerId}`);
-      database.ref(`players/player${playerId}/name`).on("value", (snapshot) => {
-        const name = snapshot.val();
-        if (name !== null && nameInput !== document.activeElement) {
-          nameInput.value = name;
-        }
-      });
-    }
-
-    // クールタイム開始
-    function startCooldown(playerId) {
-      const now = Date.now();
-      database.ref(`players/player${playerId}`).update({
-        cooldownStart: now
-      });
-    }
+    })();
   </script>
 </body>
 </html>
