@@ -109,9 +109,16 @@
     function updateCooldownDisplays(data) {
       data.forEach((child) => {
         const id = child.key.replace("player", "");
-        const val = child.val();
-        document.getElementById(`nameDisplay-${id}`).value = val.name || "";
-        document.getElementById(`cooldown-${id}`).innerText = val.cooldown ? `| クールタイム残り: ${val.cooldown}秒` : "| クールタイム残り: 0秒";
+        const val = child.val() || {};
+
+        const nameDisplay = document.getElementById(`nameDisplay-${id}`);
+        const cooldownDisplay = document.getElementById(`cooldown-${id}`);
+
+        if (nameDisplay && cooldownDisplay) {
+          nameDisplay.value = val.name || "";
+          cooldownDisplay.innerText =
+            val.cooldown ? `| クールタイム残り: ${val.cooldown}秒` : "| クールタイム残り: 0秒";
+        }
       });
     }
 
