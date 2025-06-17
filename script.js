@@ -1,24 +1,45 @@
-// クールタイム秒数（例：60秒）
-const COOLDOWN_TIME = 60;
-
-// プレイヤーの人数（最大8人）
-const PLAYER_COUNT = 8;
-
 document.addEventListener("DOMContentLoaded", () => {
-  const startButton = document.getElementById("startButton");
   const playerContainer = document.getElementById("playerContainer");
 
-  // ボタンが押されたらプレイヤー枠を生成
-  startButton.addEventListener("click", () => {
-    playerContainer.innerHTML = ""; // 既存の中身をリセット
+  // プレイヤー8人分のタイマーを作成
+  for (let i = 1; i <= 8; i++) {
+    const playerDiv = document.createElement("div");
+    playerDiv.className = "player";
 
-    for (let i = 1; i <= PLAYER_COUNT; i++) {
-      const box = document.createElement("div");
-      box.className = "player-box";
+    // プレイヤー名
+    const name = document.createElement("span");
+    name.textContent = `プレイヤー${i} `;
 
-      const title = document.createElement("h3");
-      title.textContent = `プレイヤー${i}`;
+    // ボタン
+    const button = document.createElement("button");
+    button.textContent = "開始";
+    button.dataset.index = i;
 
-      const button = document.createElement("button");
-      button.textContent = "スキル使用";
-      button.disabl
+    // タイマー表示
+    const timer = document.createElement("span");
+    timer.textContent = " 残り: 0秒";
+    timer.id = `timer-${i}`;
+
+    // イベント：ボタンクリックで30秒タイマー開始
+    button.addEventListener("click", () => {
+      let remaining = 30;
+      timer.textContent = ` 残り: ${remaining}秒`;
+
+      const interval = setInterval(() => {
+        remaining--;
+        timer.textContent = ` 残り: ${remaining}秒`;
+
+        if (remaining <= 0) {
+          clearInterval(interval);
+          timer.textContent = " 残り: 0秒";
+        }
+      }, 1000);
+    });
+
+    // まとめて追加
+    playerDiv.appendChild(name);
+    playerDiv.appendChild(button);
+    playerDiv.appendChild(timer);
+    playerContainer.appendChild(playerDiv);
+  }
+});
