@@ -15,15 +15,21 @@ document.addEventListener("DOMContentLoaded", () => {
     button.textContent = "開始";
     button.dataset.index = i;
 
-    // タイマー表示
+    // タイマー表示（12秒用）
     const timer = document.createElement("span");
     timer.textContent = " 残り: 0秒";
     timer.id = `timer-${i}`;
 
-    // イベント：ボタンクリックで30秒タイマー開始
+    // クールタイム表示（300秒用）
+    const cooldownTimer = document.createElement("span");
+    cooldownTimer.textContent = "｜クールタイム残り: 0秒";
+    cooldownTimer.id = `cooldown-${i}`;
+
+    // イベント：ボタンクリックで12秒 → 300秒
     button.addEventListener("click", () => {
       let remaining = 12;
       timer.textContent = ` 残り: ${remaining}秒`;
+      cooldownTimer.textContent = "｜クールタイム残り: -";
 
       const interval = setInterval(() => {
         remaining--;
@@ -32,14 +38,29 @@ document.addEventListener("DOMContentLoaded", () => {
         if (remaining <= 0) {
           clearInterval(interval);
           timer.textContent = " 残り: 0秒";
+
+          // ▼ クールタイム開始
+          let cooldownRemaining = 300;
+          cooldownTimer.textContent = `｜クールタイム残り: ${cooldownRemaining}秒`;
+
+          const cooldownInterval = setInterval(() => {
+            cooldownRemaining--;
+            cooldownTimer.textContent = `｜クールタイム残り: ${cooldownRemaining}秒`;
+
+            if (cooldownRemaining <= 0) {
+              clearInterval(cooldownInterval);
+              cooldownTimer.textContent = "｜クールタイム終了";
+            }
+          }, 1000);
         }
       }, 1000);
     });
 
-    // まとめて追加
+    // DOMに追加
     playerDiv.appendChild(name);
     playerDiv.appendChild(button);
     playerDiv.appendChild(timer);
+    playerDiv.appendChild(cooldownTimer);
     playerContainer.appendChild(playerDiv);
   }
 });
