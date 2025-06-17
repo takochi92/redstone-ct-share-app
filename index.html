@@ -114,29 +114,15 @@
     const cooldowns = Array(9).fill(0);
     const intervals = Array(9).fill(null);
 
-    function startCooldown(playerId) {
-      if (cooldowns[playerId] > 0 || countdowns[playerId] > 0) return;
+  function startCooldown(playerId) {
+  const now = Date.now();
 
-      countdowns[playerId] = 12;
-      cooldowns[playerId] = 300;
+  // Firebaseに開始時間を保存する（全員に共有される！）
+  database.ref(`players/player${playerId}`).update({
+    cooldownStart: now
+  });
+}
 
-      updatePlayerDisplay(playerId);
-
-      clearInterval(intervals[playerId]);
-      intervals[playerId] = setInterval(() => {
-        if (countdowns[playerId] > 0) {
-          countdowns[playerId]--;
-        } else if (cooldowns[playerId] > 0) {
-          cooldowns[playerId]--;
-        }
-
-        updatePlayerDisplay(playerId);
-
-        if (countdowns[playerId] === 0 && cooldowns[playerId] === 0) {
-          clearInterval(intervals[playerId]);
-        }
-      }, 1000);
-    }
 
     function updatePlayerDisplay(playerId) {
       const countdownEl = document.getElementById(`countdown-${playerId}`);
