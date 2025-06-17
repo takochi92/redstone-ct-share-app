@@ -2,22 +2,94 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-<title>三顧の騎士</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="script.js" defer></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>三顧の騎士</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background-color: #f9f9f9;
+    }
+
+    h1 {
+      margin-top: 30px;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      font-size: 16px;
+    }
+
+    #globalTimer {
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .player-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 30px;
+      gap: 20px;
+    }
+
+    .player-box {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 200px;
+    }
+  </style>
 </head>
 <body>
   <h1>三顧の騎士</h1>
 
-  <!-- ボタンと表示枠 -->
-  <div style="margin-bottom: 20px;">
-    <button id="startButton">クールタイム開始</button>
-    <p id="cooldownDisplay">残り時間: 0秒</p>
+  <!-- ✅ ボタンをアリーナ開始に変更 -->
+  <button onclick="startArena()">アリーナ開始</button>
+
+  <!-- ✅ 残り時間（分秒で表示） -->
+  <p id="globalTimer">残り時間: 0分0秒</p>
+
+  <div class="player-grid">
+    <div class="player-box">プレイヤー1</div>
+    <div class="player-box">プレイヤー2</div>
+    <div class="player-box">プレイヤー3</div>
+    <div class="player-box">プレイヤー4</div>
+    <div class="player-box">プレイヤー5</div>
+    <div class="player-box">プレイヤー6</div>
+    <div class="player-box">プレイヤー7</div>
+    <div class="player-box">プレイヤー8</div>
   </div>
 
-  <!-- 全体コンテナ -->
-  <div id="playerContainer">
-    <!-- script.js がここにプレイヤー枠を8人分作る予定 -->
-  </div>
+  <script>
+    let arenaCountdown;
+    let arenaTimeLeft = 1800; // 30分（1800秒）
+
+    function startArena() {
+      clearInterval(arenaCountdown);
+      arenaTimeLeft = 1800;
+      updateGlobalTimer();
+
+      arenaCountdown = setInterval(() => {
+        arenaTimeLeft--;
+        updateGlobalTimer();
+
+        if (arenaTimeLeft <= 0) {
+          clearInterval(arenaCountdown);
+          document.getElementById("globalTimer").textContent = "アリーナ終了！";
+        }
+      }, 1000);
+    }
+
+    function updateGlobalTimer() {
+      const minutes = Math.floor(arenaTimeLeft / 60);
+      const seconds = arenaTimeLeft % 60;
+      document.getElementById("globalTimer").textContent =
+        `残り時間: ${minutes}分${seconds}秒`;
+    }
+  </script>
 </body>
 </html>
