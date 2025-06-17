@@ -35,3 +35,27 @@ body {
   margin-bottom: 10px;
   font-size: 16px;
 }
+body {
+  font-family: sans-serif;
+  text-align: center;
+  background-color: #f8f8f8;
+}
+
+#playerContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  max-width: 800px;
+  margin: 40px auto;
+}
+
+.player {
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
