@@ -114,18 +114,14 @@ const button = input.nextElementSibling;
       const playerDiv = input.closest('.player');
 
 // 編集モード（＝決定ボタンのとき）は上書きしない
-if (input.disabled && 'name' in val) {
-  input.value = val.name;
-}
+ if ('name' in val) {
+      input.value = input.disabled ? val.name : input.value;
 
-
-    if ('name' in val && val.name !== undefined && val.name !== "") {
+      if (input.disabled) {
     button.textContent = "編集";
-    input.disabled = true;
     playerDiv.classList.add("active");
   } else {
     button.textContent = "決定";
-    input.disabled = false;
     playerDiv.classList.remove("active");
   }
 }
