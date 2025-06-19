@@ -7,34 +7,30 @@
   <style>
     body {
       font-family: sans-serif;
-      background-color: #f4f4f4;
+      background-color: #f8f8f8;
       text-align: center;
-      margin: 0;
-      padding: 20px;
     }
-    h1 { margin-bottom: 10px; }
     .player {
       background: white;
-      border-radius: 8px;
-      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      padding: 10px;
       margin: 10px;
       display: inline-block;
       width: 220px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
     }
-    input { padding: 5px; margin-bottom: 5px; width: 140px; }
+    input { padding: 4px; margin: 4px; }
     button { padding: 5px 10px; margin: 5px; }
-    .countdown { font-weight: bold; margin-top: 5px; }
-    .cooldown.red { color: red; font-weight: bold; }
+    .red { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
   <h1>三顧の騎士</h1>
   <div id="players"></div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
+  <!-- Firebase SDK v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -50,82 +46,69 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let offset = 0;
+    const playersContainer = document.getElementById("players");
 
-    // サーバー時刻とのずれを取得
+    let offset = 0;
     firebase.database().ref(".info/serverTimeOffset").on("value", function(snapshot) {
       offset = snapshot.val() || 0;
     });
 
-    const playersContainer = document.getElementById("players");
-
-    // プレイヤー枠を表示
+    // プレイヤー枠生成
     for (let i = 1; i <= 8; i++) {
       const div = document.createElement("div");
       div.className = "player";
       div.innerHTML = `
         <h3>プレイヤー${i}</h3>
-        <input id="nameInput-${i}" placeholder="名前を入力">
-        <button onclick="saveName(${i})">決定</button><br>
-        <button onclick="startCooldown(${i})">開始</button>
-        <div class="countdown" id="countdown-${i}">使用: 0秒</div>
-        <div class="countdown" id="cooldown-${i}">クールタイム: 0秒</div>
+        <input type="text" id="name-${i}" placeholder="名前を入力">
+        <button onclick="setName(${i})">決定</button><br>
+        <button onclick="startTimer(${i})">開始</button>
+        <p id="use-${i}">使用: 0秒</p>
+        <p id="cool-${i}">クールタイム: 0秒</p>
       `;
       playersContainer.appendChild(div);
       listenName(i);
-      listenCooldown(i);
+      listenStart(i);
     }
 
-    function saveName(id) {
-      const name = document.getElementById(`nameInput-${id}`).value;
+    function setName(id) {
+      const name = document.getElementById(`name-${id}`).value;
       db.ref(`players/player${id}`).update({ name });
     }
 
-    function startCooldown(id) {
-      const startTime = Date.now() + offset;
-      db.ref(`players/player${id}`).update({ startTime });
+    function startTimer(id) {
+      const serverTime = Date.now() + offset;
+      db.ref(`players/player${id}`).update({ startAt: serverTime });
     }
 
     function listenName(id) {
-      db.ref(`players/player${id}/name`).on("value", (snap) => {
-        const name = snap.val();
-        if (name) document.getElementById(`nameInput-${id}`).value = name;
-      });
-    }
-
-    function listenCooldown(id) {
-      db.ref(`players/player${id}/startTime`).on("value", () => {
-        updateLoop(id);
-      });
-    }
-
-    function updateLoop(id) {
-      const countdownEl = document.getElementById(`countdown-${id}`);
-      const cooldownEl = document.getElementById(`cooldown-${id}`);
-
-      const ref = db.ref(`players/player${id}`);
-      ref.once("value", (snap) => {
-        const data = snap.val();
-        if (!data || !data.startTime) return;
-
-        function tick() {
-          const now = Date.now() + offset;
-          const elapsed = Math.floor((now - data.startTime) / 1000);
-
-          const useTime = Math.max(0, 12 - elapsed);
-          const coolTime = Math.max(0, 300 - elapsed);
-
-          countdownEl.textContent = `使用: ${useTime}秒`;
-          cooldownEl.textContent = `クールタイム: ${coolTime}秒`;
-
-          cooldownEl.classList.toggle("red", coolTime <= 30 && coolTime > 0);
-
-          if (coolTime > 0) {
-            requestAnimationFrame(tick);
-          }
+      db.ref(`players/player${id}/name`).on("value", snap => {
+        if (snap.exists()) {
+          document.getElementById(`name-${id}`).value = snap.val();
         }
-        tick();
       });
+    }
+
+    function listenStart(id) {
+      db.ref(`players/player${id}/startAt`).on("value", snap => {
+        const startAt = snap.val();
+        if (!startAt) return;
+        tick(id, startAt);
+      });
+    }
+
+    function tick(id, startAt) {
+      function update() {
+        const now = Date.now() + offset;
+        const elapsed = Math.floor((now - startAt) / 1000);
+        const useLeft = Math.max(0, 12 - elapsed);
+        const coolLeft = Math.max(0, 300 - elapsed);
+
+        document.getElementById(`use-${id}`).innerText = `使用: ${useLeft}秒`;
+        document.getElementById(`cool-${id}`).innerText = `クールタイム: ${coolLeft}秒`;
+
+        if (coolLeft > 0) requestAnimationFrame(update);
+      }
+      update();
     }
   </script>
 </body>
