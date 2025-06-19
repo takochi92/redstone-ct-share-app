@@ -1,163 +1,115 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>REDSTONE クールタイム共有</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f9f9f9;
-      text-align: center;
-    }
-    .player {
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin: 10px auto;
-      max-width: 300px;
-      background: #fff;
-      border-radius: 8px;
-      position: relative;
-    }
-    .corner-icon {
-      width: 20px;
-      height: 20px;
-      position: absolute;
-      top: 10px;
-      left: 10px;
-    }
-    .active {
-      background: #def;
-    }
-  </style>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-</head>
-<body>
-  <h1>REDSTONE クールタイム共有</h1>
-  <div id="players"></div>
+  <meta charset="UTF-8">
+  <title>REDSTONE クールタイム管理</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, get, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const firebaseConfig = {
-        apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
-        authDomain: "redstone-cooltime.firebaseapp.com",
-        databaseURL: "https://redstone-cooltime-default-rtdb.firebaseio.com",
-        projectId: "redstone-cooltime",
-        storageBucket: "redstone-cooltime.appspot.com", // ←ここ重要
-        messagingSenderId: "940339332591",
-        appId: "1:940339332591:web:7da07ad6db29278a61621a"
-      };
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.database();
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
+      authDomain: "redstone-cooltime.firebaseapp.com",
+      databaseURL: "https://redstone-cooltime-default-rtdb.firebaseio.com",
+      projectId: "redstone-cooltime",
+      storageBucket: "redstone-cooltime.appspot.com",
+      messagingSenderId: "940339332591",
+      appId: "1:940339332591:web:7da07ad6db29278a61621a"
+    };
 
-      let offset = 0;
-      firebase.database().ref("/.info/serverTimeOffset").on("value", (snap) => {
-        offset = snap.val();
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const players = 8;
+    const localState = {};
+
+    for (let i = 1; i <= players; i++) {
+      document.addEventListener("DOMContentLoaded", () => {
+        const nameInput = document.getElementById(`name${i}`);
+        const nameButton = document.getElementById(`setName${i}`);
+        const startButton = document.getElementById(`start${i}`);
+
+        nameButton.addEventListener("click", () => {
+          const name = nameInput.value || `Player${i}`;
+          set(ref(db, `players/player${i}`), {
+            name,
+            phase: "ready",
+            startTime: 0
+          });
+        });
+
+        startButton.addEventListener("click", async () => {
+          const serverTimeOffsetSnap = await get(ref(db, '.info/serverTimeOffset'));
+          const offset = serverTimeOffsetSnap.val() || 0;
+          const serverTime = Date.now() + offset;
+          set(ref(db, `players/player${i}`), {
+            ...localState[`player${i}`],
+            phase: "active",
+            startTime: serverTime
+          });
+        });
       });
 
-      const playersContainer = document.getElementById("players");
+      // 監視して状態をローカルに保存
+      onValue(ref(db, `players/player${i}`), (snapshot) => {
+        const data = snapshot.val();
+        localState[`player${i}`] = data;
+        updateDisplay(i);
+      });
+    }
 
-      for (let i = 1; i <= 8; i++) {
-        const div = document.createElement("div");
-        div.className = "player";
-        div.innerHTML = `
-          <img src="https://via.placeholder.com/20" class="corner-icon">
-          <h3>プレイヤー${i}</h3>
-          <input type="text" id="name-${i}" placeholder="名前を入力">
-          <button onclick="setName(${i})">決定</button><br>
-          <button onclick="startUse(${i})">開始</button>
-          <p id="use-${i}">使用：0秒</p>
-          <p id="cool-${i}">クールタイム：0秒</p>
-        `;
-        playersContainer.appendChild(div);
-        listenPlayer(i);
+    // 秒ごとにUI更新
+    setInterval(() => {
+      for (let i = 1; i <= players; i++) {
+        updateDisplay(i);
       }
+    }, 1000);
 
-      window.setName = function(id) {
-        const input = document.getElementById(`name-${id}`);
-        const button = input.nextElementSibling;
-        const playerDiv = input.closest('.player');
+    function updateDisplay(i) {
+      const data = localState[`player${i}`];
+      if (!data) return;
 
-        if (input.disabled) {
-          input.disabled = false;
-          button.textContent = "決定";
-          playerDiv.classList.remove("active");
-        } else {
-          input.disabled = true;
-          button.textContent = "編集";
-          playerDiv.classList.add("active");
+      const nameEl = document.getElementById(`displayName${i}`);
+      const timerEl = document.getElementById(`timer${i}`);
 
-          const name = input.value.trim();
-          if (name === "") {
-            db.ref(`players/player${id}/name`).remove();
-          } else {
-            db.ref(`players/player${id}`).update({ name });
-          }
+      nameEl.textContent = data.name || `Player${i}`;
+
+      if (data.phase === "ready") {
+        timerEl.textContent = "-";
+      } else {
+        const now = Date.now();
+        const phaseDuration = data.phase === "active" ? 12000 : 300000;
+        const elapsed = now - data.startTime;
+        const remaining = Math.max(0, phaseDuration - elapsed);
+        const seconds = Math.ceil(remaining / 1000);
+        timerEl.textContent = seconds;
+
+        if (remaining <= 0 && data.phase === "active") {
+          // フェーズ遷移 active → cooldown
+          set(ref(db, `players/player${i}`), {
+            ...data,
+            phase: "cooldown",
+            startTime: now
+          });
         }
       }
-
-      window.startUse = function(id) {
-        const serverNow = Date.now() + offset;
-        db.ref(`players/player${id}`).update({
-          useStartAt: serverNow,
-          coolStartAt: null
-        });
-      }
-
-      function listenPlayer(id) {
-        db.ref(`players/player${id}`).on("value", snap => {
-          const val = snap.val();
-          if (!val) return;
-
-          const input = document.getElementById(`name-${id}`);
-          const button = input.nextElementSibling;
-          const playerDiv = input.closest('.player');
-
-          if ('name' in val && input.disabled) {
-            input.value = val.name ?? "";
-
-            if (val.name !== "") {
-              button.textContent = "編集";
-              input.disabled = true;
-              playerDiv.classList.add("active");
-            } else {
-              button.textContent = "決定";
-              input.disabled = false;
-              playerDiv.classList.remove("active");
-            }
-          }
-
-          const now = Date.now() + offset;
-
-          if (val.useStartAt) {
-            const useElapsed = Math.floor((now - val.useStartAt) / 1000);
-            const useLeft = Math.max(0, 12 - useElapsed);
-            document.getElementById(`use-${id}`).innerText = `使用：${useLeft}秒`;
-
-            if (useLeft === 0 && !val.coolStartAt) {
-              db.ref(`players/player${id}`).update({
-                coolStartAt: val.useStartAt + 12000
-              });
-            }
-          }
-
-          if (val.coolStartAt) {
-            const coolElapsed = Math.floor((now - val.coolStartAt) / 1000);
-            const coolLeft = Math.max(0, 300 - coolElapsed);
-            document.getElementById(`cool-${id}`).innerText = `クールタイム：${coolLeft}秒`;
-
-            if (coolLeft === 0) {
-              db.ref(`players/player${id}`).update({
-                useStartAt: null,
-                coolStartAt: null
-              });
-            }
-          } else {
-            document.getElementById(`cool-${id}`).innerText = `クールタイム：0秒`;
-          }
-        });
-      }
-    });
+    }
   </script>
+</head>
+<body>
+  <h1>REDSTONE クールタイム管理</h1>
+
+  <div id="players">
+    <!-- プレイヤー枠は8つ -->
+    ${[...Array(8)].map((_, i) => `
+      <div style="margin-bottom: 20px;">
+        <input type="text" id="name${i + 1}" placeholder="プレイヤー名">
+        <button id="setName${i + 1}">決定</button>
+        <button id="start${i + 1}">開始</button><br>
+        名前: <span id="displayName${i + 1}">-</span><br>
+        タイマー: <span id="timer${i + 1}">-</span>
+      </div>
+    `).join("")}
+  </div>
 </body>
 </html>
