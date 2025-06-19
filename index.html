@@ -4,30 +4,36 @@
   <meta charset="UTF-8" />
   <title>REDSTONE クールタイム共有</title>
   <style>
+    body {
+      font-family: sans-serif;
+      background: #f9f9ff;
+      text-align: center;
+    }
     .player {
+      background: #eef;
+      padding: 20px;
+      margin: 20px auto;
       border: 1px solid #aaa;
-      padding: 10px;
-      margin: 10px 0;
+      width: 400px;
       border-radius: 8px;
-      background-color: #f0f0ff;
+      text-align: left;
     }
   </style>
 </head>
 <body>
   <h1>REDSTONE クールタイム共有</h1>
 
-  <div id="players">
-    <div class="player">
-      <h3>プレイヤー1</h3>
-      <input id="name1" placeholder="名前を入力" />
-      <button id="setName1">決定</button>
-      <button id="start1">開始</button><br />
-      名前：<span id="displayName1">-</span><br />
-      使用：<span id="useTimer1">0</span>秒<br />
-      クールタイム：<span id="cooldownTimer1">0</span>秒
-    </div>
+  <div class="player">
+    <h3>プレイヤー1</h3>
+    <input id="name1" placeholder="名前を入力" />
+    <button id="setName1">決定</button>
+    <button id="start1">開始</button><br />
+    名前：<span id="displayName1">-</span><br />
+    使用：<span id="useTimer1">0</span>秒<br />
+    クールタイム：<span id="cooldownTimer1">0</span>秒
   </div>
 
+  <!-- JSは最後に書く（重要） -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -45,80 +51,64 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let serverOffset = 0;
+    let offset = 0;
     const path = "players/player1";
-    const localState = { name: "", phase: "ready", startTime: 0 };
+    const state = { name: "", phase: "ready", startTime: 0 };
 
-    async function syncServerTime() {
-      const snap = await get(ref(db, ".info/serverTimeOffset"));
-      serverOffset = snap.val() || 0;
-    }
+    // サーバーとの時差取得
+    const snap = await get(ref(db, ".info/serverTimeOffset"));
+    offset = snap.val() || 0;
 
-    await syncServerTime();
+    const now = () => Date.now() + offset;
 
     const nameInput = document.getElementById("name1");
     const setNameBtn = document.getElementById("setName1");
     const startBtn = document.getElementById("start1");
-
     const nameDisplay = document.getElementById("displayName1");
     const useTimer = document.getElementById("useTimer1");
     const cooldownTimer = document.getElementById("cooldownTimer1");
 
+    // 名前設定ボタン
     setNameBtn.addEventListener("click", () => {
       const name = nameInput.value.trim() || "プレイヤー1";
-      set(ref(db, path), {
-        name,
-        phase: "ready",
-        startTime: 0
-      });
+      set(ref(db, path), { name, phase: "ready", startTime: 0 });
     });
 
+    // 開始ボタン
     startBtn.addEventListener("click", () => {
-      const now = Date.now() + serverOffset;
-      set(ref(db, path), {
-        ...localState,
-        phase: "active",
-        startTime: now
-      });
+      set(ref(db, path), { ...state, phase: "active", startTime: now() });
     });
 
+    // Firebaseの状態監視
     onValue(ref(db, path), (snap) => {
       const data = snap.val();
       if (data) {
-        localState.name = data.name;
-        localState.phase = data.phase;
-        localState.startTime = data.startTime;
+        state.name = data.name;
+        state.phase = data.phase;
+        state.startTime = data.startTime;
       }
     });
 
+    // 表示更新ループ
     setInterval(() => {
-      nameDisplay.textContent = localState.name;
-      const now = Date.now() + serverOffset;
+      nameDisplay.textContent = state.name;
 
-      if (localState.phase === "ready") {
+      const elapsed = now() - state.startTime;
+
+      if (state.phase === "ready") {
         useTimer.textContent = "0";
         cooldownTimer.textContent = "0";
-        return;
-      }
-
-      const elapsed = now - localState.startTime;
-
-      if (localState.phase === "active") {
-        const remaining = Math.max(0, 12000 - elapsed);
-        useTimer.textContent = Math.ceil(remaining / 1000);
+      } else if (state.phase === "active") {
+        const remain = Math.max(0, 12000 - elapsed);
+        useTimer.textContent = Math.ceil(remain / 1000);
         cooldownTimer.textContent = "0";
-
-        if (remaining <= 0) {
-          set(ref(db, path), {
-            ...localState,
-            phase: "cooldown",
-            startTime: now
-          });
+        if (remain <= 0) {
+          set(ref(db, path), { ...state, phase: "cooldown", startTime: now() });
         }
-      } else if (localState.phase === "cooldown") {
+      } else if (state.phase === "cooldown") {
         useTimer.textContent = "0";
-        const remaining = Math.max(0, 300000 - elapsed);
-        cooldownTimer.textContent = Math.ceil(remaining / 1000);
+        const remain = Math.max(0, 300000 - elapsed);
+        cooldownTimer.textContent = Math.ceil(remain / 1000);
       }
     }, 1000);
   </script>
