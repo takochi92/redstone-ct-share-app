@@ -16,6 +16,7 @@
       max-width: 300px;
       background: #fff;
       border-radius: 8px;
+      position: relative;
     }
     .corner-icon {
       width: 20px;
@@ -36,133 +37,127 @@
   <div id="players"></div>
 
   <script>
-    // Firebase設定
-    const firebaseConfig = {
-      apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
-      authDomain: "redstone-cooltime.firebaseapp.com",
-      databaseURL: "https://redstone-cooltime-default-rtdb.firebaseio.com",
-      projectId: "redstone-cooltime",
-      storageBucket: "redstone-cooltime.appspot.com",
-      messagingSenderId: "940339332591",
-      appId: "1:940339332591:web:7da07ad6db29278a61621a"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    document.addEventListener("DOMContentLoaded", () => {
+      const firebaseConfig = {
+        apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
+        authDomain: "redstone-cooltime.firebaseapp.com",
+        databaseURL: "https://redstone-cooltime-default-rtdb.firebaseio.com",
+        projectId: "redstone-cooltime",
+        storageBucket: "redstone-cooltime.appspot.com", // ←ここ重要
+        messagingSenderId: "940339332591",
+        appId: "1:940339332591:web:7da07ad6db29278a61621a"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
 
-    let offset = 0;
-
-    // Firebaseサーバー時刻取得
-    firebase.database().ref("/.info/serverTimeOffset").on("value", (snap) => {
-      offset = snap.val();
-    });
-
-    const playersContainer = document.getElementById("players");
-
-    // プレイヤー枠作成
-    for (let i = 1; i <= 8; i++) {
-      const div = document.createElement("div");
-      div.className = "player";
-      div.innerHTML = `
-        <img src="https://via.placeholder.com/20" class="corner-icon">
-        <h3>プレイヤー${i}</h3>
-        <input type="text" id="name-${i}" placeholder="名前を入力">
-        <button onclick="setName(${i})">決定</button><br>
-        <button onclick="startUse(${i})">開始</button>
-        <p id="use-${i}">使用：0秒</p>
-        <p id="cool-${i}">クールタイム：0秒</p>
-      `;
-      playersContainer.appendChild(div);
-      listenPlayer(i);
-    }
-
-    function setName(id) {
-      const input = document.getElementById(`name-${id}`);
-      const button = input.nextElementSibling;
-      const playerDiv = input.closest('.player');
-
-      if (input.disabled) {
-        // 編集モードに切り替え
-        input.disabled = false;
-        button.textContent = "決定";
-        playerDiv.classList.remove("active");
-      } else {
-        // 確定モードに切り替え
-        input.disabled = true;
-        button.textContent = "編集";
-        playerDiv.classList.add("active");
-
-        const name = input.value.trim();
-        if (name === "") {
-          db.ref(`players/player${id}/name`).remove();
-        } else {
-          db.ref(`players/player${id}`).update({ name });
-        }
-      }
-    }
-
-    function startUse(id) {
-      const serverNow = Date.now() + offset;
-      db.ref(`players/player${id}`).update({
-        useStartAt: serverNow,
-        coolStartAt: null
+      let offset = 0;
+      firebase.database().ref("/.info/serverTimeOffset").on("value", (snap) => {
+        offset = snap.val();
       });
-    }
 
-    function listenPlayer(id) {
-      db.ref(`players/player${id}`).on("value", snap => {
-        const val = snap.val();
-        if (!val) return;
+      const playersContainer = document.getElementById("players");
 
+      for (let i = 1; i <= 8; i++) {
+        const div = document.createElement("div");
+        div.className = "player";
+        div.innerHTML = `
+          <img src="https://via.placeholder.com/20" class="corner-icon">
+          <h3>プレイヤー${i}</h3>
+          <input type="text" id="name-${i}" placeholder="名前を入力">
+          <button onclick="setName(${i})">決定</button><br>
+          <button onclick="startUse(${i})">開始</button>
+          <p id="use-${i}">使用：0秒</p>
+          <p id="cool-${i}">クールタイム：0秒</p>
+        `;
+        playersContainer.appendChild(div);
+        listenPlayer(i);
+      }
+
+      window.setName = function(id) {
         const input = document.getElementById(`name-${id}`);
         const button = input.nextElementSibling;
         const playerDiv = input.closest('.player');
 
-        if ('name' in val && input.disabled) {
-          input.value = val.name ?? "";
-
-          if (val.name !== undefined && val.name !== "") {
-            button.textContent = "編集";
-            input.disabled = true;
-            playerDiv.classList.add("active");
-          } else {
-            button.textContent = "決定";
-            input.disabled = false;
-            playerDiv.classList.remove("active");
-          }
-        }
-
-        const now = Date.now() + offset;
-
-        // 使用タイマー
-        if (val.useStartAt) {
-          const useElapsed = Math.floor((now - val.useStartAt) / 1000);
-          const useLeft = Math.max(0, 12 - useElapsed);
-          document.getElementById(`use-${id}`).innerText = `使用：${useLeft}秒`;
-
-          if (useLeft === 0 && !val.coolStartAt) {
-            db.ref(`players/player${id}`).update({
-              coolStartAt: val.useStartAt + 12000
-            });
-          }
-        }
-
-        // クールタイマー
-        if (val.coolStartAt) {
-          const coolElapsed = Math.floor((now - val.coolStartAt) / 1000);
-          const coolLeft = Math.max(0, 300 - coolElapsed);
-          document.getElementById(`cool-${id}`).innerText = `クールタイム：${coolLeft}秒`;
-
-          if (coolLeft === 0) {
-            db.ref(`players/player${id}`).update({
-              useStartAt: null,
-              coolStartAt: null
-            });
-          }
+        if (input.disabled) {
+          input.disabled = false;
+          button.textContent = "決定";
+          playerDiv.classList.remove("active");
         } else {
-          document.getElementById(`cool-${id}`).innerText = `クールタイム：0秒`;
+          input.disabled = true;
+          button.textContent = "編集";
+          playerDiv.classList.add("active");
+
+          const name = input.value.trim();
+          if (name === "") {
+            db.ref(`players/player${id}/name`).remove();
+          } else {
+            db.ref(`players/player${id}`).update({ name });
+          }
         }
-      });
-    }
+      }
+
+      window.startUse = function(id) {
+        const serverNow = Date.now() + offset;
+        db.ref(`players/player${id}`).update({
+          useStartAt: serverNow,
+          coolStartAt: null
+        });
+      }
+
+      function listenPlayer(id) {
+        db.ref(`players/player${id}`).on("value", snap => {
+          const val = snap.val();
+          if (!val) return;
+
+          const input = document.getElementById(`name-${id}`);
+          const button = input.nextElementSibling;
+          const playerDiv = input.closest('.player');
+
+          if ('name' in val && input.disabled) {
+            input.value = val.name ?? "";
+
+            if (val.name !== "") {
+              button.textContent = "編集";
+              input.disabled = true;
+              playerDiv.classList.add("active");
+            } else {
+              button.textContent = "決定";
+              input.disabled = false;
+              playerDiv.classList.remove("active");
+            }
+          }
+
+          const now = Date.now() + offset;
+
+          if (val.useStartAt) {
+            const useElapsed = Math.floor((now - val.useStartAt) / 1000);
+            const useLeft = Math.max(0, 12 - useElapsed);
+            document.getElementById(`use-${id}`).innerText = `使用：${useLeft}秒`;
+
+            if (useLeft === 0 && !val.coolStartAt) {
+              db.ref(`players/player${id}`).update({
+                coolStartAt: val.useStartAt + 12000
+              });
+            }
+          }
+
+          if (val.coolStartAt) {
+            const coolElapsed = Math.floor((now - val.coolStartAt) / 1000);
+            const coolLeft = Math.max(0, 300 - coolElapsed);
+            document.getElementById(`cool-${id}`).innerText = `クールタイム：${coolLeft}秒`;
+
+            if (coolLeft === 0) {
+              db.ref(`players/player${id}`).update({
+                useStartAt: null,
+                coolStartAt: null
+              });
+            }
+          } else {
+            document.getElementById(`cool-${id}`).innerText = `クールタイム：0秒`;
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>
