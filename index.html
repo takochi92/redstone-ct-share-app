@@ -107,23 +107,23 @@ if (name === "") {
         const val = snap.val();
          if (!val) return;
  
-　　　if ('name' in val) {
  const input = document.getElementById(`name-${id}`);
 const button = input.nextElementSibling;
       const playerDiv = input.closest('.player');
 
-if ('name' in val && input.disabled) {
+ if (input.disabled) {
    input.value = val.name ?? "";
-     
-      if (input.disabled) {
-    button.textContent = "編集";
-    playerDiv.classList.add("active");
-  } else {
-    button.textContent = "決定";
-    playerDiv.classList.remove("active");
-  }
-}
 
+    if (val.name !== undefined && val.name !== "") {
+      button.textContent = "編集";
+      input.disabled = true;
+      playerDiv.classList.add("active");
+    } else {
+      button.textContent = "決定";
+      input.disabled = false;
+      playerDiv.classList.remove("active");
+    }
+   
         const now = Date.now() + offset;
 
         // 使用タイマー
