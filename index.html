@@ -47,13 +47,14 @@
     const db = firebase.database();
 
     const playersContainer = document.getElementById("players");
-
     let offset = 0;
+
+    // サーバー時間とのオフセット取得
     firebase.database().ref(".info/serverTimeOffset").on("value", function(snapshot) {
       offset = snapshot.val() || 0;
     });
 
-    // プレイヤー枠生成
+    // プレイヤー枠を作成
     for (let i = 1; i <= 8; i++) {
       const div = document.createElement("div");
       div.className = "player";
@@ -61,13 +62,12 @@
         <h3>プレイヤー${i}</h3>
         <input type="text" id="name-${i}" placeholder="名前を入力">
         <button onclick="setName(${i})">決定</button><br>
-        <button onclick="startTimer(${i})">開始</button>
+        <button onclick="startUse(${i})">開始</button>
         <p id="use-${i}">使用: 0秒</p>
         <p id="cool-${i}">クールタイム: 0秒</p>
       `;
       playersContainer.appendChild(div);
-      listenName(i);
-      listenStart(i);
+      listenPlayer(i);
     }
 
     function setName(id) {
@@ -75,40 +75,53 @@
       db.ref(`players/player${id}`).update({ name });
     }
 
-    function startTimer(id) {
-      const serverTime = Date.now() + offset;
-      db.ref(`players/player${id}`).update({ startAt: serverTime });
+    function startUse(id) {
+      const serverNow = Date.now() + offset;
+      db.ref(`players/player${id}`).update({
+        useStartAt: serverNow,
+        coolStartAt: null  // クールは後から
+      });
     }
 
-    function listenName(id) {
-      db.ref(`players/player${id}/name`).on("value", snap => {
-        if (snap.exists()) {
-          document.getElementById(`name-${id}`).value = snap.val();
+    function listenPlayer(id) {
+      db.ref(`players/player${id}`).on("value", snap => {
+        const val = snap.val();
+        if (!val) return;
+
+        if (val.name) {
+          document.getElementById(`name-${id}`).value = val.name;
+        }
+
+        const now = Date.now() + offset;
+
+        // 使用タイマー
+        if (val.useStartAt) {
+          const useElapsed = Math.floor((now - val.useStartAt) / 1000);
+          const useLeft = Math.max(0, 12 - useElapsed);
+          document.getElementById(`use-${id}`).innerText = `使用: ${useLeft}秒`;
+
+          // 12秒終了後、coolStartAt がまだならセット
+          if (useLeft <= 0 && !val.coolStartAt) {
+            db.ref(`players/player${id}`).update({
+              coolStartAt: val.useStartAt + 12000  // 12秒後
+            });
+          }
+        } else {
+          document.getElementById(`use-${id}`).innerText = `使用: 0秒`;
+        }
+
+        // クールタイマー
+        if (val.coolStartAt) {
+          const coolElapsed = Math.floor((now - val.coolStartAt) / 1000);
+          const coolLeft = Math.max(0, 300 - coolElapsed);
+          document.getElementById(`cool-${id}`).innerText = `クールタイム: ${coolLeft}秒`;
+        } else {
+          document.getElementById(`cool-${id}`).innerText = `クールタイム: 0秒`;
         }
       });
-    }
 
-    function listenStart(id) {
-      db.ref(`players/player${id}/startAt`).on("value", snap => {
-        const startAt = snap.val();
-        if (!startAt) return;
-        tick(id, startAt);
-      });
-    }
-
-    function tick(id, startAt) {
-      function update() {
-        const now = Date.now() + offset;
-        const elapsed = Math.floor((now - startAt) / 1000);
-        const useLeft = Math.max(0, 12 - elapsed);
-        const coolLeft = Math.max(0, 300 - elapsed);
-
-        document.getElementById(`use-${id}`).innerText = `使用: ${useLeft}秒`;
-        document.getElementById(`cool-${id}`).innerText = `クールタイム: ${coolLeft}秒`;
-
-        if (coolLeft > 0) requestAnimationFrame(update);
-      }
-      update();
+      // 毎秒更新
+      setInterval(() => listenPlayer(id), 1000);
     }
   </script>
 </body>
