@@ -106,17 +106,18 @@
     function listenPlayer(id) {
       db.ref(`players/player${id}`).on("value", snap => {
         const val = snap.val();
+         if (!val) return;
  
 　　　if ('name' in val) {
  const input = document.getElementById(`name-${id}`);
 const button = input.nextElementSibling;
+      const playerDiv = input.closest('.player');
 
 // 編集モード（＝決定ボタンのとき）は上書きしない
 if (button.textContent !== "決定") {
   input.value = val.name;
 }
 
-  const playerDiv = input.closest('.player');
 
   if (val.name) {
     button.textContent = "編集";
