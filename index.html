@@ -40,8 +40,7 @@
       ref,
       set,
       onValue,
-      get,
-      child
+      onDisconnect
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
@@ -57,18 +56,18 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const path = "players/player1";
-    const state = { name: "", phase: "ready", startTime: 0 };
-
-    // サーバー時刻との差を取得
+    // サーバー時刻同期（onValueで取得する方式に変更）
     let offset = 0;
-    const offsetRef = ref(getDatabase());
-    const offsetSnap = await get(child(offsetRef, ".info/serverTimeOffset"));
-    offset = offsetSnap.val() || 0;
+    const offsetRef = ref(db, ".info/serverTimeOffset");
+    onValue(offsetRef, (snap) => {
+      offset = snap.val() || 0;
+    });
 
     const now = () => Date.now() + offset;
 
-    // 要素の取得
+    const path = "players/player1";
+    const state = { name: "", phase: "ready", startTime: 0 };
+
     const nameInput = document.getElementById("name1");
     const setNameBtn = document.getElementById("setName1");
     const startBtn = document.getElementById("start1");
@@ -82,7 +81,7 @@
       set(ref(db, path), { name, phase: "ready", startTime: 0 });
     });
 
-    // 開始ボタン
+    // 開始
     startBtn.addEventListener("click", () => {
       set(ref(db, path), {
         ...state,
@@ -91,7 +90,7 @@
       });
     });
 
-    // Firebaseからのリアルタイム監視
+    // データ受信
     onValue(ref(db, path), (snap) => {
       const data = snap.val();
       if (data) {
@@ -101,7 +100,7 @@
       }
     });
 
-    // 毎秒更新（DOM描画）
+    // 毎秒更新
     setInterval(() => {
       nameDisplay.textContent = state.name;
 
@@ -115,7 +114,7 @@
         useTimer.textContent = Math.ceil(remain / 1000);
         cooldownTimer.textContent = "0";
         if (remain <= 0) {
-          // クールタイムに移行
+          // クールタイム開始
           set(ref(db, path), {
             ...state,
             phase: "cooldown",
