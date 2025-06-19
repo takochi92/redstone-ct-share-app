@@ -75,11 +75,11 @@
           const data = snap.val();
           if (data) {
             localState[`player${i}`] = data;
-            updateDisplay(i);
           }
         });
       }
 
+      // ←←← ココが重要！DOMContentLoadedの中で開始！
       setInterval(() => {
         for (let i = 1; i <= players; i++) {
           updateDisplay(i);
@@ -94,6 +94,7 @@
       const nameEl = document.getElementById(`displayName${i}`);
       const useEl = document.getElementById(`useTimer${i}`);
       const cdEl = document.getElementById(`cooldownTimer${i}`);
+      if (!nameEl || !useEl || !cdEl) return; // DOM未生成なら何もしない
 
       nameEl.textContent = data.name || `Player${i}`;
 
@@ -112,7 +113,6 @@
         useEl.textContent = Math.ceil(remaining / 1000);
         cdEl.textContent = "0";
 
-        // フェーズ移行
         if (remaining <= 0) {
           set(ref(db, `players/player${i}`), {
             ...data,
