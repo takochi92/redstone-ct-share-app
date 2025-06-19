@@ -113,7 +113,7 @@
 const button = input.nextElementSibling;
       const playerDiv = input.closest('.player');
 
- if ('name' in val) {
+if ('name' in val && input.disabled) {
    input.value = val.name ?? ""; 
      
       if (input.disabled) {
