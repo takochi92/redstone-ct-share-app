@@ -107,10 +107,23 @@
       db.ref(`players/player${id}`).on("value", snap => {
         const val = snap.val();
  
+　　　if ('name' in val) {
+  const input = document.getElementById(`name-${id}`);
+  input.value = val.name;
 
-      if ('name' in val) {
-          document.getElementById(`name-${id}`).value = val.name;
-        }
+  const playerDiv = input.closest('.player');
+  const button = input.nextElementSibling;
+
+  if (val.name) {
+    button.textContent = "編集";
+    input.disabled = true;
+    playerDiv.classList.add("active");
+  } else {
+    button.textContent = "決定";
+    input.disabled = false;
+    playerDiv.classList.remove("active");
+  }
+}
 
         const now = Date.now() + offset;
 
