@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>REDSTONE クールタイム管理</title>
+  <title>REDSTONE クールタイム共有</title>
   <style>
     body {
       font-family: sans-serif;
@@ -13,6 +13,7 @@
       padding: 10px;
       margin-bottom: 10px;
       border-radius: 8px;
+      background-color: #f5f5f5;
     }
   </style>
   <script type="module">
@@ -36,13 +37,11 @@
     const localState = {};
     let serverTimeOffset = 0;
 
-    // サーバーとの時刻差を取得
     async function syncServerTimeOffset() {
       const snap = await get(ref(db, ".info/serverTimeOffset"));
       serverTimeOffset = snap.val() || 0;
     }
 
-    // 初期化
     document.addEventListener("DOMContentLoaded", async () => {
       await syncServerTimeOffset();
 
@@ -72,7 +71,6 @@
           });
         });
 
-        // リアルタイム監視
         onValue(ref(db, `players/player${i}`), (snap) => {
           const data = snap.val();
           if (data) {
@@ -82,7 +80,6 @@
         });
       }
 
-      // 表示更新ループ（1秒ごと）
       setInterval(() => {
         for (let i = 1; i <= players; i++) {
           updateDisplay(i);
@@ -95,36 +92,45 @@
       if (!data) return;
 
       const nameEl = document.getElementById(`displayName${i}`);
-      const timerEl = document.getElementById(`timer${i}`);
+      const useEl = document.getElementById(`useTimer${i}`);
+      const cdEl = document.getElementById(`cooldownTimer${i}`);
+
       nameEl.textContent = data.name || `Player${i}`;
 
+      const now = Date.now() + serverTimeOffset;
+
       if (data.phase === "ready") {
-        timerEl.textContent = "-";
+        useEl.textContent = "0";
+        cdEl.textContent = "0";
         return;
       }
 
-      const now = Date.now() + serverTimeOffset;
-      const duration = data.phase === "active" ? 12000 : 300000;
       const elapsed = now - data.startTime;
-      const remaining = Math.max(0, duration - elapsed);
-      const seconds = Math.ceil(remaining / 1000);
-      timerEl.textContent = seconds;
 
-      // フェーズ自動遷移（active → cooldown）
-      if (data.phase === "active" && remaining === 0) {
-        set(ref(db, `players/player${i}`), {
-          ...data,
-          phase: "cooldown",
-          startTime: now
-        });
+      if (data.phase === "active") {
+        const remaining = Math.max(0, 12000 - elapsed);
+        useEl.textContent = Math.ceil(remaining / 1000);
+        cdEl.textContent = "0";
+
+        // フェーズ移行
+        if (remaining <= 0) {
+          set(ref(db, `players/player${i}`), {
+            ...data,
+            phase: "cooldown",
+            startTime: now
+          });
+        }
+      } else if (data.phase === "cooldown") {
+        useEl.textContent = "0";
+        const remaining = Math.max(0, 300000 - elapsed);
+        cdEl.textContent = Math.ceil(remaining / 1000);
       }
     }
   </script>
 </head>
 <body>
-  <h1>REDSTONE クールタイム管理</h1>
-  <div id="playerList">
-    <!-- プレイヤー枠（8人分） -->
+  <h1>REDSTONE クールタイム共有</h1>
+  <div id="players">
     ${[...Array(8)].map((_, i) => `
       <div class="player">
         <h3>プレイヤー${i + 1}</h3>
@@ -132,7 +138,8 @@
         <button id="setName${i + 1}">決定</button>
         <button id="start${i + 1}">開始</button><br />
         名前: <span id="displayName${i + 1}">-</span><br />
-        タイマー: <span id="timer${i + 1}">-</span>
+        使用：<span id="useTimer${i + 1}">0</span>秒<br />
+        クールタイム：<span id="cooldownTimer${i + 1}">0</span>秒
       </div>
     `).join("")}
   </div>
