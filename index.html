@@ -33,10 +33,16 @@
     クールタイム：<span id="cooldownTimer1">0</span>秒
   </div>
 
-  <!-- JSは最後に書く（重要） -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import {
+      getDatabase,
+      ref,
+      set,
+      onValue,
+      get,
+      child
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
@@ -51,16 +57,18 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let offset = 0;
     const path = "players/player1";
     const state = { name: "", phase: "ready", startTime: 0 };
 
-    // サーバーとの時差取得
-    const snap = await get(ref(db, ".info/serverTimeOffset"));
-    offset = snap.val() || 0;
+    // サーバー時刻との差を取得
+    let offset = 0;
+    const offsetRef = ref(getDatabase());
+    const offsetSnap = await get(child(offsetRef, ".info/serverTimeOffset"));
+    offset = offsetSnap.val() || 0;
 
     const now = () => Date.now() + offset;
 
+    // 要素の取得
     const nameInput = document.getElementById("name1");
     const setNameBtn = document.getElementById("setName1");
     const startBtn = document.getElementById("start1");
@@ -68,7 +76,7 @@
     const useTimer = document.getElementById("useTimer1");
     const cooldownTimer = document.getElementById("cooldownTimer1");
 
-    // 名前設定ボタン
+    // 名前決定
     setNameBtn.addEventListener("click", () => {
       const name = nameInput.value.trim() || "プレイヤー1";
       set(ref(db, path), { name, phase: "ready", startTime: 0 });
@@ -76,10 +84,14 @@
 
     // 開始ボタン
     startBtn.addEventListener("click", () => {
-      set(ref(db, path), { ...state, phase: "active", startTime: now() });
+      set(ref(db, path), {
+        ...state,
+        phase: "active",
+        startTime: now()
+      });
     });
 
-    // Firebaseの状態監視
+    // Firebaseからのリアルタイム監視
     onValue(ref(db, path), (snap) => {
       const data = snap.val();
       if (data) {
@@ -89,7 +101,7 @@
       }
     });
 
-    // 表示更新ループ
+    // 毎秒更新（DOM描画）
     setInterval(() => {
       nameDisplay.textContent = state.name;
 
@@ -103,7 +115,12 @@
         useTimer.textContent = Math.ceil(remain / 1000);
         cooldownTimer.textContent = "0";
         if (remain <= 0) {
-          set(ref(db, path), { ...state, phase: "cooldown", startTime: now() });
+          // クールタイムに移行
+          set(ref(db, path), {
+            ...state,
+            phase: "cooldown",
+            startTime: now()
+          });
         }
       } else if (state.phase === "cooldown") {
         useTimer.textContent = "0";
