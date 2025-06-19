@@ -39,10 +39,10 @@
       getDatabase,
       ref,
       set,
-      onValue,
-      onDisconnect
+      onValue
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+    // ✅ Firebase構成情報（あなたの情報）
     const firebaseConfig = {
       apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
       authDomain: "redstone-cooltime.firebaseapp.com",
@@ -56,13 +56,13 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // サーバー時刻同期（onValueで取得する方式に変更）
+    // ✅ Firebaseサーバー時刻との差（onValueで取得）
     let offset = 0;
-    const offsetRef = ref(db, ".info/serverTimeOffset");
-    onValue(offsetRef, (snap) => {
+    onValue(ref(db, "/.info/serverTimeOffset"), (snap) => {
       offset = snap.val() || 0;
     });
 
+    // 現在時刻（クライアント+サーバー差）
     const now = () => Date.now() + offset;
 
     const path = "players/player1";
@@ -75,13 +75,13 @@
     const useTimer = document.getElementById("useTimer1");
     const cooldownTimer = document.getElementById("cooldownTimer1");
 
-    // 名前決定
+    // ✅ 名前の設定
     setNameBtn.addEventListener("click", () => {
       const name = nameInput.value.trim() || "プレイヤー1";
       set(ref(db, path), { name, phase: "ready", startTime: 0 });
     });
 
-    // 開始
+    // ✅ 使用開始
     startBtn.addEventListener("click", () => {
       set(ref(db, path), {
         ...state,
@@ -90,7 +90,7 @@
       });
     });
 
-    // データ受信
+    // ✅ Firebaseのデータをリアルタイムで監視
     onValue(ref(db, path), (snap) => {
       const data = snap.val();
       if (data) {
@@ -100,7 +100,7 @@
       }
     });
 
-    // 毎秒更新
+    // ✅ 毎秒画面更新（リアルタイム表示）
     setInterval(() => {
       nameDisplay.textContent = state.name;
 
@@ -114,7 +114,6 @@
         useTimer.textContent = Math.ceil(remain / 1000);
         cooldownTimer.textContent = "0";
         if (remain <= 0) {
-          // クールタイム開始
           set(ref(db, path), {
             ...state,
             phase: "cooldown",
