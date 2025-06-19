@@ -106,7 +106,7 @@
     function listenPlayer(id) {
       db.ref(`players/player${id}`).on("value", snap => {
         const val = snap.val();
-        if (!val) return;
+ 
 
         if (val.name) {
           document.getElementById(`name-${id}`).value = val.name;
