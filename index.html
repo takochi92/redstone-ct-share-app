@@ -72,8 +72,27 @@
     }
 
     function setName(id) {
-      const name = document.getElementById(`name-${id}`).value;
-      db.ref(`players/player${id}`).update({ name });
+  const input = document.getElementById(`name-${id}`);
+  const button = input.nextElementSibling;
+  const playerDiv = input.closest('.player');
+
+  if (input.disabled) {
+    // 編集モードに切り替え
+    input.disabled = false;
+    button.textContent = "決定";
+    playerDiv.classList.remove("active");
+  } else {
+    // 確定モードに切り替え
+    input.disabled = true;
+    button.textContent = "編集";
+    playerDiv.classList.add("active");
+
+    // データベースに反映
+    const name = input.value;
+    db.ref(`players/player${id}`).update({ name });
+  }
+}
+
     }
 
     function startUse(id) {
