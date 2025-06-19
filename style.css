@@ -35,7 +35,12 @@ button:hover {
 }
 
 .player {
-  background-color: #fff;
+  background-image: url('dice-icon.png'); /* ← ここで画像指定してる */
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  color: #fff;
+
   border: 1px solid #ddd;
   border-radius: 10px;
   padding: 12px 18px;
@@ -43,6 +48,7 @@ button:hover {
   width: 220px;
   text-align: left;
 }
+
 
 .player span {
   display: block;
