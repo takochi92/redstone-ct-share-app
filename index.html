@@ -16,14 +16,16 @@
 <body>
   <h1>REDSTONE クールタイム共有</h1>
 
-  <div class="player">
-    <h3>プレイヤー1</h3>
-    <input id="name1" placeholder="名前を入力" />
-    <button id="setName1">決定</button>
-    <button id="start1">開始</button><br />
-    名前：<span id="displayName1">-</span><br />
-    使用：<span id="useTimer1">0</span>秒<br />
-    クールタイム：<span id="cooldownTimer1">0</span>秒
+  <div id="players">
+    <div class="player">
+      <h3>プレイヤー1</h3>
+      <input id="name1" placeholder="名前を入力" />
+      <button id="setName1">決定</button>
+      <button id="start1">開始</button><br />
+      名前：<span id="displayName1">-</span><br />
+      使用：<span id="useTimer1">0</span>秒<br />
+      クールタイム：<span id="cooldownTimer1">0</span>秒
+    </div>
   </div>
 
   <script type="module">
@@ -44,7 +46,7 @@
     const db = getDatabase(app);
 
     let serverOffset = 0;
-    const playerPath = "players/player1";
+    const path = "players/player1";
     const localState = { name: "", phase: "ready", startTime: 0 };
 
     async function syncServerTime() {
@@ -62,28 +64,25 @@
     const useTimer = document.getElementById("useTimer1");
     const cooldownTimer = document.getElementById("cooldownTimer1");
 
-    // 名前設定
     setNameBtn.addEventListener("click", () => {
       const name = nameInput.value.trim() || "プレイヤー1";
-      set(ref(db, playerPath), {
+      set(ref(db, path), {
         name,
         phase: "ready",
         startTime: 0
       });
     });
 
-    // 開始ボタン
     startBtn.addEventListener("click", () => {
       const now = Date.now() + serverOffset;
-      set(ref(db, playerPath), {
+      set(ref(db, path), {
         ...localState,
         phase: "active",
         startTime: now
       });
     });
 
-    // Firebaseから状態を監視
-    onValue(ref(db, playerPath), (snap) => {
+    onValue(ref(db, path), (snap) => {
       const data = snap.val();
       if (data) {
         localState.name = data.name;
@@ -92,10 +91,8 @@
       }
     });
 
-    // 毎秒更新（表示のみ）
     setInterval(() => {
       nameDisplay.textContent = localState.name;
-
       const now = Date.now() + serverOffset;
 
       if (localState.phase === "ready") {
@@ -112,8 +109,7 @@
         cooldownTimer.textContent = "0";
 
         if (remaining <= 0) {
-          // フェーズ移行
-          set(ref(db, playerPath), {
+          set(ref(db, path), {
             ...localState,
             phase: "cooldown",
             startTime: now
