@@ -4,18 +4,28 @@
   <meta charset="UTF-8" />
   <title>REDSTONE クールタイム共有</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-    }
     .player {
-      border: 1px solid #ccc;
+      border: 1px solid #aaa;
       padding: 10px;
-      margin-bottom: 10px;
+      margin: 10px 0;
       border-radius: 8px;
       background-color: #f5f5f5;
     }
   </style>
+</head>
+<body>
+  <h1>REDSTONE クールタイム共有</h1>
+
+  <div class="player">
+    <h3>プレイヤー1</h3>
+    <input id="name1" placeholder="名前を入力">
+    <button id="setName1">決定</button>
+    <button id="start1">開始</button><br>
+    名前：<span id="displayName1">-</span><br>
+    使用：<span id="useTimer1">0</span>秒<br>
+    クールタイム：<span id="cooldownTimer1">0</span>秒
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -33,74 +43,60 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const players = 8;
+    let offset = 0;
     const localState = {};
-    let serverTimeOffset = 0;
 
-    async function syncServerTimeOffset() {
+    async function syncOffset() {
       const snap = await get(ref(db, ".info/serverTimeOffset"));
-      serverTimeOffset = snap.val() || 0;
+      offset = snap.val() || 0;
     }
 
-    document.addEventListener("DOMContentLoaded", async () => {
-      await syncServerTimeOffset();
+    await syncOffset();
 
-      for (let i = 1; i <= players; i++) {
-        const nameInput = document.getElementById(`name${i}`);
-        const setNameBtn = document.getElementById(`setName${i}`);
-        const startBtn = document.getElementById(`start${i}`);
+    const nameInput = document.getElementById("name1");
+    const setNameBtn = document.getElementById("setName1");
+    const startBtn = document.getElementById("start1");
 
-        setNameBtn.addEventListener("click", () => {
-          const name = nameInput.value.trim() || `Player${i}`;
-          set(ref(db, `players/player${i}`), {
-            name,
-            phase: "ready",
-            startTime: 0
-          });
-        });
-
-        startBtn.addEventListener("click", async () => {
-          const serverNow = Date.now() + serverTimeOffset;
-          const current = localState[`player${i}`];
-          if (!current) return;
-
-          set(ref(db, `players/player${i}`), {
-            ...current,
-            phase: "active",
-            startTime: serverNow
-          });
-        });
-
-        // Firebase から状態を取得して localState に保存
-        onValue(ref(db, `players/player${i}`), (snap) => {
-          const data = snap.val();
-          if (data) {
-            localState[`player${i}`] = data;
-          }
-        });
-      }
-
-      // 表示更新ループ
-      setInterval(() => {
-        const now = Date.now() + serverTimeOffset;
-        for (let i = 1; i <= players; i++) {
-          updateDisplay(i, now);
-        }
-      }, 1000);
+    setNameBtn.addEventListener("click", () => {
+      const name = nameInput.value.trim() || "Player1";
+      set(ref(db, "players/player1"), {
+        name,
+        phase: "ready",
+        startTime: 0
+      });
     });
 
-    function updateDisplay(i, now) {
-      const data = localState[`player${i}`];
+    startBtn.addEventListener("click", async () => {
+      const now = Date.now() + offset;
+      const current = localState["player1"];
+      if (!current) return;
+
+      set(ref(db, "players/player1"), {
+        ...current,
+        phase: "active",
+        startTime: now
+      });
+    });
+
+    onValue(ref(db, "players/player1"), (snap) => {
+      const data = snap.val();
+      if (data) {
+        localState["player1"] = data;
+      }
+    });
+
+    setInterval(() => {
+      const data = localState["player1"];
       if (!data) return;
 
-      const nameEl = document.getElementById(`displayName${i}`);
-      const useEl = document.getElementById(`useTimer${i}`);
-      const cdEl = document.getElementById(`cooldownTimer${i}`);
-      if (!nameEl || !useEl || !cdEl) return;
+      const now = Date.now() + offset;
+      const nameEl = document.getElementById("displayName1");
+      const useEl = document.getElementById("useTimer1");
+      const cdEl = document.getElementById("cooldownTimer1");
 
-      nameEl.textContent = data.name || `Player${i}`;
+      nameEl.textContent = data.name;
 
-      if (data.phase === "ready" || !data.startTime) {
+      if (data.phase === "ready") {
         useEl.textContent = "0";
         cdEl.textContent = "0";
         return;
@@ -112,10 +108,8 @@
         const remaining = Math.max(0, 12000 - elapsed);
         useEl.textContent = Math.ceil(remaining / 1000);
         cdEl.textContent = "0";
-
         if (remaining <= 0) {
-          // 自動的にクールタイムへ移行
-          set(ref(db, `players/player${i}`), {
+          set(ref(db, "players/player1"), {
             ...data,
             phase: "cooldown",
             startTime: now
@@ -126,23 +120,7 @@
         const remaining = Math.max(0, 300000 - elapsed);
         cdEl.textContent = Math.ceil(remaining / 1000);
       }
-    }
+    }, 1000);
   </script>
-</head>
-<body>
-  <h1>REDSTONE クールタイム共有</h1>
-  <div id="players">
-    ${[...Array(8)].map((_, i) => `
-      <div class="player">
-        <h3>プレイヤー${i + 1}</h3>
-        <input type="text" id="name${i + 1}" placeholder="名前を入力" />
-        <button id="setName${i + 1}">決定</button>
-        <button id="start${i + 1}">開始</button><br />
-        名前: <span id="displayName${i + 1}">-</span><br />
-        使用：<span id="useTimer${i + 1}">0</span>秒<br />
-        クールタイム：<span id="cooldownTimer${i + 1}">0</span>秒
-      </div>
-    `).join("")}
-  </div>
 </body>
 </html>
