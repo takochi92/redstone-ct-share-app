@@ -71,6 +71,7 @@
           });
         });
 
+        // Firebase から状態を取得して localState に保存
         onValue(ref(db, `players/player${i}`), (snap) => {
           const data = snap.val();
           if (data) {
@@ -79,28 +80,27 @@
         });
       }
 
-      // ←←← ココが重要！DOMContentLoadedの中で開始！
+      // 表示更新ループ
       setInterval(() => {
+        const now = Date.now() + serverTimeOffset;
         for (let i = 1; i <= players; i++) {
-          updateDisplay(i);
+          updateDisplay(i, now);
         }
       }, 1000);
     });
 
-    function updateDisplay(i) {
+    function updateDisplay(i, now) {
       const data = localState[`player${i}`];
       if (!data) return;
 
       const nameEl = document.getElementById(`displayName${i}`);
       const useEl = document.getElementById(`useTimer${i}`);
       const cdEl = document.getElementById(`cooldownTimer${i}`);
-      if (!nameEl || !useEl || !cdEl) return; // DOM未生成なら何もしない
+      if (!nameEl || !useEl || !cdEl) return;
 
       nameEl.textContent = data.name || `Player${i}`;
 
-      const now = Date.now() + serverTimeOffset;
-
-      if (data.phase === "ready") {
+      if (data.phase === "ready" || !data.startTime) {
         useEl.textContent = "0";
         cdEl.textContent = "0";
         return;
@@ -114,6 +114,7 @@
         cdEl.textContent = "0";
 
         if (remaining <= 0) {
+          // 自動的にクールタイムへ移行
           set(ref(db, `players/player${i}`), {
             ...data,
             phase: "cooldown",
