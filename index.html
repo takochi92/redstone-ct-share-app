@@ -113,10 +113,9 @@
 const button = input.nextElementSibling;
       const playerDiv = input.closest('.player');
 
-// 編集モード（＝決定ボタンのとき）は上書きしない
  if ('name' in val) {
-      input.value = input.disabled ? val.name : input.value;
-
+   input.value = val.name ?? ""; 
+     
       if (input.disabled) {
     button.textContent = "編集";
     playerDiv.classList.add("active");
