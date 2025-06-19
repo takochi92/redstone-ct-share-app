@@ -23,6 +23,7 @@
 <body>
   <h1>REDSTONE クールタイム共有</h1>
 
+  <!-- ✅ プレイヤー表示エリア（idを正確に） -->
   <div id="players"></div>
 
   <script type="module">
@@ -47,6 +48,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    // Firebaseのサーバー時刻との差分を取得
     let offset = 0;
     onValue(ref(db, "/.info/serverTimeOffset"), (snap) => {
       offset = snap.val() || 0;
@@ -129,6 +131,7 @@
       }, 1000);
     }
 
+    // ✅ プレイヤー1〜8作成
     for (let i = 1; i <= 8; i++) {
       createPlayer(i);
     }
