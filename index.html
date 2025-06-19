@@ -9,7 +9,7 @@
       padding: 10px;
       margin: 10px 0;
       border-radius: 8px;
-      background-color: #f5f5f5;
+      background-color: #f0f0ff;
     }
   </style>
 </head>
@@ -18,11 +18,11 @@
 
   <div class="player">
     <h3>プレイヤー1</h3>
-    <input id="name1" placeholder="名前を入力">
+    <input id="name1" placeholder="名前を入力" />
     <button id="setName1">決定</button>
-    <button id="start1">開始</button><br>
-    名前：<span id="displayName1">-</span><br>
-    使用：<span id="useTimer1">0</span>秒<br>
+    <button id="start1">開始</button><br />
+    名前：<span id="displayName1">-</span><br />
+    使用：<span id="useTimer1">0</span>秒<br />
     クールタイム：<span id="cooldownTimer1">0</span>秒
   </div>
 
@@ -43,82 +43,86 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let offset = 0;
-    const localState = {};
+    let serverOffset = 0;
+    const playerPath = "players/player1";
+    const localState = { name: "", phase: "ready", startTime: 0 };
 
-    async function syncOffset() {
+    async function syncServerTime() {
       const snap = await get(ref(db, ".info/serverTimeOffset"));
-      offset = snap.val() || 0;
+      serverOffset = snap.val() || 0;
     }
 
-    await syncOffset();
+    await syncServerTime();
 
     const nameInput = document.getElementById("name1");
     const setNameBtn = document.getElementById("setName1");
     const startBtn = document.getElementById("start1");
 
+    const nameDisplay = document.getElementById("displayName1");
+    const useTimer = document.getElementById("useTimer1");
+    const cooldownTimer = document.getElementById("cooldownTimer1");
+
+    // 名前設定
     setNameBtn.addEventListener("click", () => {
-      const name = nameInput.value.trim() || "Player1";
-      set(ref(db, "players/player1"), {
+      const name = nameInput.value.trim() || "プレイヤー1";
+      set(ref(db, playerPath), {
         name,
         phase: "ready",
         startTime: 0
       });
     });
 
-    startBtn.addEventListener("click", async () => {
-      const now = Date.now() + offset;
-      const current = localState["player1"];
-      if (!current) return;
-
-      set(ref(db, "players/player1"), {
-        ...current,
+    // 開始ボタン
+    startBtn.addEventListener("click", () => {
+      const now = Date.now() + serverOffset;
+      set(ref(db, playerPath), {
+        ...localState,
         phase: "active",
         startTime: now
       });
     });
 
-    onValue(ref(db, "players/player1"), (snap) => {
+    // Firebaseから状態を監視
+    onValue(ref(db, playerPath), (snap) => {
       const data = snap.val();
       if (data) {
-        localState["player1"] = data;
+        localState.name = data.name;
+        localState.phase = data.phase;
+        localState.startTime = data.startTime;
       }
     });
 
+    // 毎秒更新（表示のみ）
     setInterval(() => {
-      const data = localState["player1"];
-      if (!data) return;
+      nameDisplay.textContent = localState.name;
 
-      const now = Date.now() + offset;
-      const nameEl = document.getElementById("displayName1");
-      const useEl = document.getElementById("useTimer1");
-      const cdEl = document.getElementById("cooldownTimer1");
+      const now = Date.now() + serverOffset;
 
-      nameEl.textContent = data.name;
-
-      if (data.phase === "ready") {
-        useEl.textContent = "0";
-        cdEl.textContent = "0";
+      if (localState.phase === "ready") {
+        useTimer.textContent = "0";
+        cooldownTimer.textContent = "0";
         return;
       }
 
-      const elapsed = now - data.startTime;
+      const elapsed = now - localState.startTime;
 
-      if (data.phase === "active") {
+      if (localState.phase === "active") {
         const remaining = Math.max(0, 12000 - elapsed);
-        useEl.textContent = Math.ceil(remaining / 1000);
-        cdEl.textContent = "0";
+        useTimer.textContent = Math.ceil(remaining / 1000);
+        cooldownTimer.textContent = "0";
+
         if (remaining <= 0) {
-          set(ref(db, "players/player1"), {
-            ...data,
+          // フェーズ移行
+          set(ref(db, playerPath), {
+            ...localState,
             phase: "cooldown",
             startTime: now
           });
         }
-      } else if (data.phase === "cooldown") {
-        useEl.textContent = "0";
+      } else if (localState.phase === "cooldown") {
+        useTimer.textContent = "0";
         const remaining = Math.max(0, 300000 - elapsed);
-        cdEl.textContent = Math.ceil(remaining / 1000);
+        cooldownTimer.textContent = Math.ceil(remaining / 1000);
       }
     }, 1000);
   </script>
