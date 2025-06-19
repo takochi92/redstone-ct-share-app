@@ -119,7 +119,7 @@ if (button.textContent !== "決定") {
 }
 
 
-    if ('name' in val && val.name !== undefined) {
+    if ('name' in val && val.name !== undefined && val.name !== "") {
     button.textContent = "編集";
     input.disabled = true;
     playerDiv.classList.add("active");
