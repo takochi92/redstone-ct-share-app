@@ -108,7 +108,7 @@
         const val = snap.val();
  
 
-        if (val.name) {
+      if ('name' in val) {
           document.getElementById(`name-${id}`).value = val.name;
         }
 
