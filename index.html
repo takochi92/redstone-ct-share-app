@@ -88,7 +88,7 @@
     playerDiv.classList.add("active");
 
     // データベースに反映
-    const name = input.value;
+    const name = input.value.trim();
     db.ref(`players/player${id}`).update({ name });
   }
 }
