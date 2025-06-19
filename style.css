@@ -35,7 +35,7 @@ button:hover {
 }
 
 .player {
-  background-image: url('dice-icon.png'); /* ← ここで画像指定してる */
+ background-image: url('https://your-github-repo-url/dice-icon.png');
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
