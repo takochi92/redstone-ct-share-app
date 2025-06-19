@@ -22,8 +22,6 @@
 </head>
 <body>
   <h1>REDSTONE クールタイム共有</h1>
-
-  <!-- ✅ プレイヤー表示エリア（idを正確に） -->
   <div id="players"></div>
 
   <script type="module">
@@ -48,7 +46,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Firebaseのサーバー時刻との差分を取得
     let offset = 0;
     onValue(ref(db, "/.info/serverTimeOffset"), (snap) => {
       offset = snap.val() || 0;
@@ -58,30 +55,30 @@
 
     const playersContainer = document.getElementById("players");
 
-    function createPlayer(i) {
+    for (let i = 1; i <= 8; i++) {
       const playerId = `player${i}`;
+      const path = `players/${playerId}`;
+      const state = { name: "", phase: "ready", startTime: 0 };
+
       const div = document.createElement("div");
       div.className = "player";
       div.innerHTML = `
         <h3>プレイヤー${i}</h3>
-        <input id="name-input" placeholder="名前を入力" />
-        <button class="set-name">決定</button>
-        <button class="start-btn">開始</button><br />
-        名前：<span class="display-name">-</span><br />
-        使用：<span class="use-timer">0</span>秒<br />
-        クールタイム：<span class="cooldown-timer">0</span>秒
+        <input id="nameInput${i}" placeholder="名前を入力" />
+        <button id="setNameBtn${i}">決定</button>
+        <button id="startBtn${i}">開始</button><br />
+        名前：<span id="nameDisplay${i}">-</span><br />
+        使用：<span id="useTimer${i}">0</span>秒<br />
+        クールタイム：<span id="cooldownTimer${i}">0</span>秒
       `;
       playersContainer.appendChild(div);
 
-      const nameInput = div.querySelector("#name-input");
-      const setNameBtn = div.querySelector(".set-name");
-      const startBtn = div.querySelector(".start-btn");
-      const nameDisplay = div.querySelector(".display-name");
-      const useTimer = div.querySelector(".use-timer");
-      const cooldownTimer = div.querySelector(".cooldown-timer");
-
-      const path = `players/${playerId}`;
-      const state = { name: "", phase: "ready", startTime: 0 };
+      const nameInput = document.getElementById(`nameInput${i}`);
+      const setNameBtn = document.getElementById(`setNameBtn${i}`);
+      const startBtn = document.getElementById(`startBtn${i}`);
+      const nameDisplay = document.getElementById(`nameDisplay${i}`);
+      const useTimer = document.getElementById(`useTimer${i}`);
+      const cooldownTimer = document.getElementById(`cooldownTimer${i}`);
 
       setNameBtn.addEventListener("click", () => {
         const name = nameInput.value.trim() || `プレイヤー${i}`;
@@ -129,11 +126,6 @@
           cooldownTimer.textContent = Math.ceil(remain / 1000);
         }
       }, 1000);
-    }
-
-    // ✅ プレイヤー1〜8作成
-    for (let i = 1; i <= 8; i++) {
-      createPlayer(i);
     }
   </script>
 </body>
