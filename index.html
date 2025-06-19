@@ -87,13 +87,16 @@
     button.textContent = "編集";
     playerDiv.classList.add("active");
 
-    // データベースに反映
-    const name = input.value.trim();
-    db.ref(`players/player${id}`).update({ name });
+    let name = input.value.trim();
+    // 空欄なら完全削除
+    if (name === "") {
+      db.ref(`players/player${id}/name`).remove();
+    } else {
+      db.ref(`players/player${id}`).update({ name });
+    }
   }
 }
 
-    }
 
     function startUse(id) {
       const serverNow = Date.now() + offset;
@@ -114,7 +117,7 @@ const button = input.nextElementSibling;
       const playerDiv = input.closest('.player');
 
 if ('name' in val && input.disabled) {
-   input.value = val.name ?? ""; 
+   input.value = val.name; 
      
       if (input.disabled) {
     button.textContent = "編集";
