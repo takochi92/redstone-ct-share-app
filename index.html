@@ -59,6 +59,7 @@
       const div = document.createElement("div");
       div.className = "player";
       div.innerHTML = `
+       <img src="dice-icon.png" class="corner-icon">
         <h3>プレイヤー${i}</h3>
         <input type="text" id="name-${i}" placeholder="名前を入力">
         <button onclick="setName(${i})">決定</button><br>
