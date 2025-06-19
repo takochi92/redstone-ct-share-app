@@ -23,15 +23,7 @@
 <body>
   <h1>REDSTONE クールタイム共有</h1>
 
-  <div class="player">
-    <h3>プレイヤー1</h3>
-    <input id="name1" placeholder="名前を入力" />
-    <button id="setName1">決定</button>
-    <button id="start1">開始</button><br />
-    名前：<span id="displayName1">-</span><br />
-    使用：<span id="useTimer1">0</span>秒<br />
-    クールタイム：<span id="cooldownTimer1">0</span>秒
-  </div>
+  <div id="players"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -42,7 +34,6 @@
       onValue
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    // ✅ Firebase構成情報（あなたの情報）
     const firebaseConfig = {
       apiKey: "AIzaSyD0gkCfZZVOpJVIOgldr00RoEny2mtnAws",
       authDomain: "redstone-cooltime.firebaseapp.com",
@@ -56,76 +47,87 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // ✅ Firebaseサーバー時刻との差（onValueで取得）
     let offset = 0;
     onValue(ref(db, "/.info/serverTimeOffset"), (snap) => {
       offset = snap.val() || 0;
     });
 
-    // 現在時刻（クライアント+サーバー差）
     const now = () => Date.now() + offset;
 
-    const path = "players/player1";
-    const state = { name: "", phase: "ready", startTime: 0 };
+    const playersContainer = document.getElementById("players");
 
-    const nameInput = document.getElementById("name1");
-    const setNameBtn = document.getElementById("setName1");
-    const startBtn = document.getElementById("start1");
-    const nameDisplay = document.getElementById("displayName1");
-    const useTimer = document.getElementById("useTimer1");
-    const cooldownTimer = document.getElementById("cooldownTimer1");
+    for (let i = 1; i <= 8; i++) {
+      const playerId = `player${i}`;
+      const div = document.createElement("div");
+      div.className = "player";
+      div.innerHTML = `
+        <h3>プレイヤー${i}</h3>
+        <input id="name${i}" placeholder="名前を入力" />
+        <button id="setName${i}">決定</button>
+        <button id="start${i}">開始</button><br />
+        名前：<span id="displayName${i}">-</span><br />
+        使用：<span id="useTimer${i}">0</span>秒<br />
+        クールタイム：<span id="cooldownTimer${i}">0</span>秒
+      `;
+      playersContainer.appendChild(div);
 
-    // ✅ 名前の設定
-    setNameBtn.addEventListener("click", () => {
-      const name = nameInput.value.trim() || "プレイヤー1";
-      set(ref(db, path), { name, phase: "ready", startTime: 0 });
-    });
+      const path = `players/${playerId}`;
+      const state = { name: "", phase: "ready", startTime: 0 };
 
-    // ✅ 使用開始
-    startBtn.addEventListener("click", () => {
-      set(ref(db, path), {
-        ...state,
-        phase: "active",
-        startTime: now()
+      const nameInput = div.querySelector(`#name${i}`);
+      const setNameBtn = div.querySelector(`#setName${i}`);
+      const startBtn = div.querySelector(`#start${i}`);
+      const nameDisplay = div.querySelector(`#displayName${i}`);
+      const useTimer = div.querySelector(`#useTimer${i}`);
+      const cooldownTimer = div.querySelector(`#cooldownTimer${i}`);
+
+      setNameBtn.addEventListener("click", () => {
+        const name = nameInput.value.trim() || `プレイヤー${i}`;
+        set(ref(db, path), { name, phase: "ready", startTime: 0 });
       });
-    });
 
-    // ✅ Firebaseのデータをリアルタイムで監視
-    onValue(ref(db, path), (snap) => {
-      const data = snap.val();
-      if (data) {
-        state.name = data.name;
-        state.phase = data.phase;
-        state.startTime = data.startTime;
-      }
-    });
+      startBtn.addEventListener("click", () => {
+        set(ref(db, path), {
+          ...state,
+          phase: "active",
+          startTime: now()
+        });
+      });
 
-    // ✅ 毎秒画面更新（リアルタイム表示）
-    setInterval(() => {
-      nameDisplay.textContent = state.name;
-
-      const elapsed = now() - state.startTime;
-
-      if (state.phase === "ready") {
-        useTimer.textContent = "0";
-        cooldownTimer.textContent = "0";
-      } else if (state.phase === "active") {
-        const remain = Math.max(0, 12000 - elapsed);
-        useTimer.textContent = Math.ceil(remain / 1000);
-        cooldownTimer.textContent = "0";
-        if (remain <= 0) {
-          set(ref(db, path), {
-            ...state,
-            phase: "cooldown",
-            startTime: now()
-          });
+      onValue(ref(db, path), (snap) => {
+        const data = snap.val();
+        if (data) {
+          state.name = data.name;
+          state.phase = data.phase;
+          state.startTime = data.startTime;
         }
-      } else if (state.phase === "cooldown") {
-        useTimer.textContent = "0";
-        const remain = Math.max(0, 300000 - elapsed);
-        cooldownTimer.textContent = Math.ceil(remain / 1000);
-      }
-    }, 1000);
+      });
+
+      setInterval(() => {
+        nameDisplay.textContent = state.name;
+        const elapsed = now() - state.startTime;
+
+        if (state.phase === "ready") {
+          useTimer.textContent = "0";
+          cooldownTimer.textContent = "0";
+        } else if (state.phase === "active") {
+          const remain = Math.max(0, 12000 - elapsed);
+          useTimer.textContent = Math.ceil(remain / 1000);
+          cooldownTimer.textContent = "0";
+          if (remain <= 0) {
+            set(ref(db, path), {
+              ...state,
+              phase: "cooldown",
+              startTime: now()
+            });
+          }
+        } else if (state.phase === "cooldown") {
+          useTimer.textContent = "0";
+          const remain = Math.max(0, 300000 - elapsed);
+          cooldownTimer.textContent = Math.ceil(remain / 1000);
+        }
+      }, 1000);
+    }
   </script>
 </body>
 </html>
