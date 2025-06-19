@@ -108,8 +108,13 @@
         const val = snap.val();
  
 　　　if ('name' in val) {
-  const input = document.getElementById(`name-${id}`);
+ const input = document.getElementById(`name-${id}`);
+const button = input.nextElementSibling;
+
+// 編集モード（＝決定ボタンのとき）は上書きしない
+if (button.textContent !== "決定") {
   input.value = val.name;
+}
 
   const playerDiv = input.closest('.player');
   const button = input.nextElementSibling;
