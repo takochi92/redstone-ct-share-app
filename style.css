@@ -35,12 +35,12 @@ button:hover {
 }
 
 .player {
- background-image: url('https://your-github-repo-url/dice-icon.png');
+  background-image: url('dice-icon.png');
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
-  color: #fff;
-
+  ...
+}
   border: 1px solid #ddd;
   border-radius: 10px;
   padding: 12px 18px;
