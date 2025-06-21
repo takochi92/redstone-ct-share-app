@@ -22,7 +22,7 @@
       flex-wrap: wrap;
       justify-content: center;
       max-width: 1200px;
-      margin: 0 auto;
+      margin: 0 auto 60px auto;
       gap: 20px;
     }
     .player {
@@ -57,15 +57,24 @@
     button {
       padding: 6px 12px;
       margin: 4px 2px;
-      background-color: #1976d2;
-      color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
       transition: background-color 0.2s;
     }
-    button:hover {
+    .blue-button {
+      background-color: #1976d2;
+      color: white;
+    }
+    .blue-button:hover {
       background-color: #0d47a1;
+    }
+    .red-button {
+      background-color: #d32f2f;
+      color: white;
+    }
+    .red-button:hover {
+      background-color: #b71c1c;
     }
     span {
       font-weight: bold;
@@ -75,7 +84,9 @@
 </head>
 <body>
   <h1>REDSTONE クールタイム共有</h1>
-  <div class="players-container" id="players"></div>
+  <div class="players-container" id="players1"></div>
+  <div class="players-container" id="players2"></div>
+  <div class="players-container" id="players3"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -98,27 +109,24 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const beep = new Audio("beep.wav");
 
     let offset = 0;
     onValue(ref(db, "/.info/serverTimeOffset"), (snap) => {
       offset = snap.val() || 0;
     });
-
     const now = () => Date.now() + offset;
 
-    const beep = new Audio("beep.wav"); // 効果音ファイル（同じフォルダに置く）
-
-    const playersContainer = document.getElementById("players");
-
-    for (let i = 1; i <= 8; i++) {
+    const createPlayerBlock = (i, containerId, buttonClass) => {
+      const playersContainer = document.getElementById(containerId);
       const playerId = `player${i}`;
       const div = document.createElement("div");
       div.className = "player";
       div.innerHTML = `
         <h3>プレイヤー${i}</h3>
         <input id="name${i}" placeholder="名前を入力" />
-        <button id="setName${i}">決定</button>
-        <button id="start${i}">開始</button><br /><br />
+        <button id="setName${i}" class="${buttonClass}">決定</button>
+        <button id="start${i}" class="${buttonClass}">開始</button><br /><br />
         名前：<span id="displayName${i}">-</span><br />
         使用：<span id="useTimer${i}">0</span>秒<br />
         クールタイム：<span id="cooldownTimer${i}">0</span>秒
@@ -127,7 +135,7 @@
 
       const path = `players/${playerId}`;
       const state = { name: `プレイヤー${i}`, phase: "ready", startTime: 0 };
-      let beepPlayed = false; // 音再生フラグ
+      let beepPlayed = false;
 
       const nameInput = div.querySelector(`#name${i}`);
       const setNameBtn = div.querySelector(`#setName${i}`);
@@ -156,7 +164,7 @@
           state.name = data.name;
           state.phase = data.phase;
           state.startTime = data.startTime;
-          beepPlayed = false; // フェーズが変わったらリセット
+          beepPlayed = false;
         }
       });
 
@@ -194,7 +202,11 @@
           beepPlayed = false;
         }
       }, 1000);
-    }
+    };
+
+    for (let i = 1; i <= 8; i++) createPlayerBlock(i, "players1", "blue-button");
+    for (let i = 9; i <= 12; i++) createPlayerBlock(i, "players2", "red-button");
+    for (let i = 13; i <= 16; i++) createPlayerBlock(i, "players3", "red-button");
   </script>
 </body>
 </html>
