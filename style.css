@@ -1,78 +1,30 @@
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f8f8f8;
-  text-align: center;
-  padding: 40px;
+  font-family: 'Segoe UI', sans-serif;
+  background: #f0f4f8;
   margin: 0;
+  padding: 20px;
+  text-align: center;
 }
 
 h1 {
-  font-size: 28px;
-  margin-bottom: 20px;
+  font-size: 2rem;
+  color: #222;
+  margin-bottom: 30px;
 }
 
-button {
-  margin: 6px;
-  padding: 6px 12px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: 1px solid #aaa;
-  background-color: #f0f0f0;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-button:hover {
-  background-color: #ddd;
-}
-
-#playerContainer {
+.players-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 16px;
-  margin-top: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 20px;
 }
 
 .player {
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 12px 18px;
-  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
-  width: 220px;
-  text-align: left;
-  position: relative; /* ← 飾り画像を絶対配置するために必要！ */
-}
-
-.player img.corner-icon {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 30px;
-  height: auto;
-  opacity: 0.5; /* 半透明 */
-}
-
-.player span {
-  display: block;
-  margin: 4px 0;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-/* 改行させたくないテキストに個別指定 */
-.cooldown-timer,
-.timer {
-  white-space: nowrap;
-}
-
-#globalCooldown {
-  margin-top: 10px;
-  font-weight: bold;
-  font-size: 16px;
-}
-.player.active {
-.player.active {
-  background-color: rgba(255, 100, 100, 0.2); /* 薄い赤色 */
-}
+  box-sizing: border-box;
+  background: url("dice-icon.png") no-repeat bottom right / 80px, #ffffff;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  box-sha
