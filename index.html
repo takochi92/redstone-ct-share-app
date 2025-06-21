@@ -1,4 +1,4 @@
-」<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
@@ -172,4 +172,66 @@
           ...state,
           phase: "active",
           startTime: now()
-」
+        });
+      });
+
+      onValue(ref(db, path), (snap) => {
+        const data = snap.val();
+        if (data) {
+          state.name = data.name;
+          state.phase = data.phase;
+          state.startTime = data.startTime;
+          beepPlayed = false;
+        }
+      });
+
+      setInterval(() => {
+        nameDisplay.textContent = state.name;
+        const elapsed = now() - state.startTime;
+
+        if (state.phase === "ready") {
+          useTimer.textContent = "0";
+          cooldownTimer.textContent = "0";
+          beepPlayed = false;
+          div.classList.remove("flashing");
+        } else if (state.phase === "active") {
+          const remain = Math.max(0, 12000 - elapsed);
+          const remainSec = Math.ceil(remain / 1000);
+          useTimer.textContent = remainSec;
+          cooldownTimer.textContent = "0";
+
+          if (remainSec <= 3) {
+            div.classList.add("flashing");
+            if (!beepPlayed) {
+              beep.play();
+              beepPlayed = true;
+            }
+          } else {
+            div.classList.remove("flashing");
+          }
+
+          if (remain <= 0) {
+            set(ref(db, path), {
+              ...state,
+              phase: "cooldown",
+              startTime: now()
+            });
+            beepPlayed = false;
+            div.classList.remove("flashing");
+          }
+        } else if (state.phase === "cooldown") {
+          useTimer.textContent = "0";
+          const remain = Math.max(0, 300000 - elapsed);
+          cooldownTimer.textContent = Math.ceil(remain / 1000);
+          div.classList.remove("flashing");
+          beepPlayed = false;
+        }
+      }, 1000);
+    };
+
+    for (let i = 1; i <= 8; i++) createPlayerBlock(i, "players1", "blue-button");
+    for (let i = 9; i <= 12; i++) createPlayerBlock(i, "players2", "red-button");
+    for (let i = 13; i <= 16; i++) createPlayerBlock(i, "players3", "red-button");
+  </script>
+</body>
+</html>
