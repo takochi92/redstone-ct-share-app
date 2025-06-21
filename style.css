@@ -26,7 +26,7 @@ h1 {
 .player {
   box-sizing: border-box;
   background: #ffffff url("dice-icon.png") no-repeat bottom right / 80px;
-  /* ↑ backgroundに画像パスを含める（順序が重要） */
+
   padding: 20px;
   border: 1px solid #ccc;
   border-radius: 12px;
