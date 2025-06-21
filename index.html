@@ -26,7 +26,7 @@
     }
     .player {
       box-sizing: border-box;
-      background: #ffffff url("dice-icon.png") no-repeat bottom right / 60px;
+      background-color: #ffffff;
       padding: 20px;
       border: 1px solid #ccc;
       border-radius: 12px;
@@ -37,19 +37,6 @@
       transition: transform 0.2s;
       position: relative;
       overflow: hidden;
-    }
-    .player::before {
-      content: "";
-      background-image: url("dice-icon.png");
-      background-size: 32px 32px;
-      background-repeat: no-repeat;
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 32px;
-      height: 32px;
-      opacity: 0.3;
-      pointer-events: none;
     }
     .player:hover {
       transform: translateY(-4px);
@@ -117,6 +104,13 @@
       const playerId = `player${i}`;
       const div = document.createElement("div");
       div.className = "player";
+
+      // ✅ 背景画像追加（ここがポイント！）
+      div.style.backgroundImage = "url('dice-icon.png')";
+      div.style.backgroundRepeat = "no-repeat";
+      div.style.backgroundPosition = "bottom right";
+      div.style.backgroundSize = "60px";
+
       div.innerHTML = `
         <h3>プレイヤー${i}</h3>
         <input id="name${i}" placeholder="名前を入力" />
