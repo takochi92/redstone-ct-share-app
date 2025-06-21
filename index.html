@@ -106,6 +106,8 @@
 
     const now = () => Date.now() + offset;
 
+    const beep = new Audio("beep.wav"); // 効果音ファイル（同じフォルダに置く）
+
     const playersContainer = document.getElementById("players");
 
     for (let i = 1; i <= 8; i++) {
@@ -125,6 +127,7 @@
 
       const path = `players/${playerId}`;
       const state = { name: `プレイヤー${i}`, phase: "ready", startTime: 0 };
+      let beepPlayed = false; // 音再生フラグ
 
       const nameInput = div.querySelector(`#name${i}`);
       const setNameBtn = div.querySelector(`#setName${i}`);
@@ -153,6 +156,7 @@
           state.name = data.name;
           state.phase = data.phase;
           state.startTime = data.startTime;
+          beepPlayed = false; // フェーズが変わったらリセット
         }
       });
 
@@ -163,21 +167,31 @@
         if (state.phase === "ready") {
           useTimer.textContent = "0";
           cooldownTimer.textContent = "0";
+          beepPlayed = false;
         } else if (state.phase === "active") {
           const remain = Math.max(0, 12000 - elapsed);
-          useTimer.textContent = Math.ceil(remain / 1000);
+          const remainSec = Math.ceil(remain / 1000);
+          useTimer.textContent = remainSec;
           cooldownTimer.textContent = "0";
+
+          if (remainSec <= 3 && !beepPlayed) {
+            beep.play();
+            beepPlayed = true;
+          }
+
           if (remain <= 0) {
             set(ref(db, path), {
               ...state,
               phase: "cooldown",
               startTime: now()
             });
+            beepPlayed = false;
           }
         } else if (state.phase === "cooldown") {
           useTimer.textContent = "0";
           const remain = Math.max(0, 300000 - elapsed);
           cooldownTimer.textContent = Math.ceil(remain / 1000);
+          beepPlayed = false;
         }
       }, 1000);
     }
