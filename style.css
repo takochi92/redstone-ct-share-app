@@ -25,7 +25,8 @@ h1 {
 
 .player {
   box-sizing: border-box;
-  background: url("./dice-icon.png") no-repeat bottom right / 80px, #ffffff;
+  background: #ffffff url("dice-icon.png") no-repeat bottom right / 80px;
+  /* ↑ backgroundに画像パスを含める（順序が重要） */
   padding: 20px;
   border: 1px solid #ccc;
   border-radius: 12px;
@@ -38,14 +39,9 @@ h1 {
   overflow: hidden;
 }
 
-.player:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-}
-
 .player::before {
   content: "";
-  background-image: url("./dice-icon.png");
+  background-image: url("dice-icon.png");
   background-size: 40px 40px;
   background-repeat: no-repeat;
   position: absolute;
@@ -56,6 +52,7 @@ h1 {
   opacity: 0.3;
   pointer-events: none;
 }
+
 
 input {
   padding: 6px;
