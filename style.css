@@ -25,7 +25,7 @@ h1 {
 
 .player {
   box-sizing: border-box;
-  background: url("dice-icon.png") no-repeat bottom right / 80px, #ffffff;
+  background: url("./dice-icon.png") no-repeat bottom right / 80px, #ffffff;
   padding: 20px;
   border: 1px solid #ccc;
   border-radius: 12px;
@@ -45,7 +45,7 @@ h1 {
 
 .player::before {
   content: "";
-  background-image: url("dice-icon.png");
+  background-image: url("./dice-icon.png");
   background-size: 40px 40px;
   background-repeat: no-repeat;
   position: absolute;
