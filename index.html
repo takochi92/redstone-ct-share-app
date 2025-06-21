@@ -6,15 +6,16 @@
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: #f0f4f8;
+      background: linear-gradient(to bottom right, #e0ecf4, #f8fbff);
       margin: 0;
       padding: 20px;
       text-align: center;
     }
     h1 {
-      font-size: 2rem;
-      color: #222;
+      font-size: 2.5rem;
+      color: #1a237e;
       margin-bottom: 30px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
     }
     .players-container {
       display: flex;
@@ -28,40 +29,47 @@
       box-sizing: border-box;
       background-color: #ffffff;
       padding: 20px;
-      border: 1px solid #ccc;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      border: 2px solid #d1d9e6;
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
       text-align: left;
       width: 22%;
       min-width: 250px;
-      transition: transform 0.2s;
+      transition: transform 0.2s, box-shadow 0.3s;
       position: relative;
       overflow: hidden;
+      background-image: url('dice-icon.png');
+      background-repeat: no-repeat;
+      background-position: bottom right;
+      background-size: 60px;
     }
     .player:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+      transform: translateY(-6px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
     }
     input {
-      padding: 6px;
+      padding: 8px;
       margin-right: 8px;
-      border: 1px solid #aaa;
+      border: 1px solid #90a4ae;
       border-radius: 4px;
+      width: 70%;
     }
     button {
-      padding: 6px 10px;
-      margin-left: 4px;
+      padding: 6px 12px;
+      margin: 4px 2px;
       background-color: #1976d2;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
+      transition: background-color 0.2s;
     }
     button:hover {
-      background-color: #115293;
+      background-color: #0d47a1;
     }
     span {
       font-weight: bold;
+      color: #1a237e;
     }
   </style>
 </head>
@@ -104,13 +112,6 @@
       const playerId = `player${i}`;
       const div = document.createElement("div");
       div.className = "player";
-
-      // ✅ 背景画像追加（ここがポイント！）
-      div.style.backgroundImage = "url('dice-icon.png')";
-      div.style.backgroundRepeat = "no-repeat";
-      div.style.backgroundPosition = "bottom right";
-      div.style.backgroundSize = "60px";
-
       div.innerHTML = `
         <h3>プレイヤー${i}</h3>
         <input id="name${i}" placeholder="名前を入力" />
