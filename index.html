@@ -5,9 +5,16 @@
   <title>REDSTONE クールタイム共有</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #f9f9ff;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      margin: 0;
+      padding: 20px;
       text-align: center;
+    }
+    h1 {
+      font-size: 2rem;
+      color: #222;
+      margin-bottom: 30px;
     }
     .players-container {
       display: flex;
@@ -19,13 +26,40 @@
     }
     .player {
       box-sizing: border-box;
-      background: #eef;
+      background: #ffffff;
       padding: 20px;
-      border: 1px solid #aaa;
-      border-radius: 8px;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
       text-align: left;
       width: 22%;
       min-width: 250px;
+      transition: transform 0.2s;
+    }
+    .player:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+    input {
+      padding: 6px;
+      margin-right: 8px;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+    }
+    button {
+      padding: 6px 10px;
+      margin-left: 4px;
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #115293;
+    }
+    span {
+      font-weight: bold;
     }
   </style>
 </head>
@@ -72,7 +106,7 @@
         <h3>プレイヤー${i}</h3>
         <input id="name${i}" placeholder="名前を入力" />
         <button id="setName${i}">決定</button>
-        <button id="start${i}">開始</button><br />
+        <button id="start${i}">開始</button><br /><br />
         名前：<span id="displayName${i}">-</span><br />
         使用：<span id="useTimer${i}">0</span>秒<br />
         クールタイム：<span id="cooldownTimer${i}">0</span>秒
@@ -80,7 +114,7 @@
       playersContainer.appendChild(div);
 
       const path = `players/${playerId}`;
-      const state = { name: "", phase: "ready", startTime: 0 };
+      const state = { name: `プレイヤー${i}`, phase: "ready", startTime: 0 };
 
       const nameInput = div.querySelector(`#name${i}`);
       const setNameBtn = div.querySelector(`#setName${i}`);
@@ -91,6 +125,7 @@
 
       setNameBtn.addEventListener("click", () => {
         const name = nameInput.value.trim() || `プレイヤー${i}`;
+        state.name = name;
         set(ref(db, path), { name, phase: "ready", startTime: 0 });
       });
 
